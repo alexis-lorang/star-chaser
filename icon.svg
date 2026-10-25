@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#060a24"/>
+      <stop offset=".62" stop-color="#151d4f"/>
+      <stop offset="1" stop-color="#2f3577"/>
+    </linearGradient>
+    <linearGradient id="aur" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#5df2a6" stop-opacity="0"/>
+      <stop offset=".25" stop-color="#5df2a6" stop-opacity=".55"/>
+      <stop offset=".75" stop-color="#5df2a6" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#b98cff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#fff6d8" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#fff6d8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <!-- Aurore -->
+  <path d="M0 700 C180 610 330 680 512 600 S860 560 1024 640 L1024 330 C860 300 700 420 512 380 S170 300 0 380 Z" fill="url(#aur)"/>
+  <!-- Étoiles -->
+  <g fill="#fff">
+    <circle cx="150" cy="170" r="7" opacity=".9"/><circle cx="300" cy="110" r="5" opacity=".7"/>
+    <circle cx="420" cy="230" r="4" opacity=".6"/><circle cx="210" cy="330" r="5" opacity=".7"/>
+    <circle cx="860" cy="420" r="5" opacity=".7"/><circle cx="560" cy="140" r="6" opacity=".85"/>
+    <circle cx="120" cy="500" r="4" opacity=".55"/><circle cx="930" cy="150" r="4" opacity=".6"/>
+    <path d="M470 330 l12 30 32 4 -24 21 7 32 -27 -16 -27 16 7 -32 -24 -21 32 -4 z" opacity=".95"/>
+  </g>
+  <!-- Étoile filante -->
+  <path d="M560 300 L700 430" stroke="url(#trail)" stroke-width="10" stroke-linecap="round"/>
+  <!-- Lune -->
+  <circle cx="760" cy="250" r="230" fill="url(#glow)"/>
+  <path d="M760 130 a120 120 0 1 0 105 178 a95 95 0 1 1 -105 -178 z" fill="#f6edc6"/>
+  <!-- Relief et lunette -->
+  <path d="M0 1024 L0 760 C140 700 260 740 380 690 S640 720 760 670 S940 690 1024 720 L1024 1024 Z" fill="#141a40"/>
+  <path d="M0 1024 L0 860 C200 830 420 870 600 820 S880 780 1024 800 L1024 1024 Z" fill="#080c24"/>
+  <g fill="#080c24" stroke="#080c24" stroke-width="12" stroke-linecap="round">
+    <path d="M800 760 l-40 68 M800 760 l40 68 M800 760 v70" fill="none"/>
+    <path d="M730 768 l130 -76 l18 30 l-130 76 z" stroke-width="4"/>
+  </g>
+</svg>
