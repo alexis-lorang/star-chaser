@@ -59,17 +59,6 @@
   --on-good: #0a1430;
   --on-top: #08201a;
   --on-na: #fff;
-  /* Échelle 1 → 5 (seeing, transparence, jet stream) */
-  --q1: #3a4370;
-  --q2: #5d5fb8;
-  --q3: #6c86e0;
-  --q4: #4cc0e6;
-  --q5: #5fe0b0;
-  --on-q1: #fff;
-  --on-q2: #fff;
-  --on-q3: #fff;
-  --on-q4: #0a1430;
-  --on-q5: #08201a;
   --accent: #ffd479;
   --mint: #5fe0b0;
   --aurora-g: #5df2a6;
@@ -170,16 +159,6 @@
   --on-good: #142047;
   --on-top: #0d2a20;
   --on-na: #142047;
-  --q1: #d4d9ef;
-  --q2: #c7c6f3;
-  --q3: #b7c8f5;
-  --q4: #a6daf6;
-  --q5: #a3ecd0;
-  --on-q1: #142047;
-  --on-q2: #142047;
-  --on-q3: #142047;
-  --on-q4: #142047;
-  --on-q5: #0d2a20;
   --accent: #b7791f;
   --mint: #1f9d74;
   --aurora-g: #1aa86a;
@@ -258,11 +237,6 @@ h1[tabindex]:focus { outline: none; }
 .good { --c: var(--c-good); --c-on: var(--on-good); }
 .top { --c: var(--c-top); --c-on: var(--on-top); }
 .na { --c: var(--c-na); --c-on: var(--on-na); }
-.q1 { --c: var(--q1); --c-on: var(--on-q1); }
-.q2 { --c: var(--q2); --c-on: var(--on-q2); }
-.q3 { --c: var(--q3); --c-on: var(--on-q3); }
-.q4 { --c: var(--q4); --c-on: var(--on-q4); }
-.q5 { --c: var(--q5); --c-on: var(--on-q5); }
 
 /* Ciel étoilé fixe derrière les pages (points répétés, deux tailles, scintillement lent). */
 .starfield {
@@ -310,8 +284,7 @@ h1[tabindex]:focus { outline: none; }
   padding-top: calc(var(--safe-t) + 52px);
   padding-bottom: calc(var(--safe-b) + var(--tabbar-h) + 40px);
 }
-.content, .stack { display: flex; flex-direction: column; gap: var(--sp-5); }
-.stack.tight { gap: var(--sp-3); }
+.content { display: flex; flex-direction: column; gap: var(--sp-5); }
 .content { max-width: 560px; margin: 0 auto; padding: 0 20px; }
 
 /* ---------- Barre d'onglets ---------- */
@@ -481,14 +454,6 @@ h1[tabindex]:focus { outline: none; }
 .gauge.sm { width: 120px; height: 72px; }
 .gauge.sm b { top: 30px; font-size: 28px; }
 
-/* Légende en échelle : segments du plus faible au plus fort, libellés dessous. */
-.scale { display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px var(--sp-3) var(--sp-3); border-radius: 20px; background: var(--card); border: 1px solid var(--edge); }
-.scale-bar, .scale-lbl { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: var(--sp-1); }
-.scale-bar i { height: 8px; border-radius: 2px; background: var(--c); }
-.scale-bar i:first-child { border-radius: 4px 2px 2px 4px; }
-.scale-bar i:last-child { border-radius: 2px 4px 4px 2px; }
-.scale-lbl span { font-size: 12px; font-weight: 500; text-align: center; white-space: nowrap; color: var(--text-2); }
-.card .scale { padding: 0; background: none; border: 0; }
 .help-btn { position: relative; width: 44px; height: 44px; margin-right: -6px; display: grid; place-items: center; font-size: 15px; font-weight: 600; color: var(--on-glass); }
 .help-btn::before {
   content: ""; position: absolute; inset: 8px; border-radius: 50%;
@@ -518,41 +483,6 @@ h1[tabindex]:focus { outline: none; }
 }
 
 /* ---------- Sélecteurs ---------- */
-
-.segmented {
-  position: relative; display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: var(--sp-1);
-  padding: var(--sp-1); border-radius: 22px;
-  background: var(--glass); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-}
-.seg-thumb {
-  position: absolute; z-index: 0; top: var(--sp-1); bottom: var(--sp-1); left: var(--sp-1); pointer-events: none;
-  width: calc((100% - 2 * var(--sp-1) - (var(--n) - 1) * var(--sp-1)) / var(--n)); border-radius: 18px;
-  background: var(--glass-sel);
-  transform: translateX(calc(var(--k) * (100% + var(--sp-1))));
-  transition: transform .5s var(--spring);
-}
-.seg {
-  position: relative; z-index: 1; min-width: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  min-height: 64px; padding: 0 0 var(--sp-2); border-radius: 18px; color: var(--on-glass);
-  transition: color .25s;
-}
-.seg[aria-selected="true"] { color: var(--on-glass-sel); }
-.seg > * { transition: transform .3s var(--spring); }
-.seg:active > * { transform: scale(.9); }
-/* Petite jauge sous chaque nuit */
-.seg::before, .seg::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 7px; height: 4px; border-radius: 2px; }
-.seg::before { background: rgba(255, 255, 255, .25); }
-.seg[aria-selected="true"]::before { background: rgba(27, 34, 80, .15); }
-.seg::after { background: var(--c); transform: scaleX(var(--v)); transform-origin: left; }
-.rise .seg::after { animation: grow-x .9s var(--ease-ios) backwards; animation-delay: calc(var(--j, 0) * 45ms + 200ms); }
-.seg span { font-size: 13px; font-weight: 500; white-space: nowrap; }
-.seg b { font: 600 18px/1.15 var(--font); font-variant-numeric: tabular-nums; }
-/* Version texte seul (filtres) */
-.segmented.text .seg { min-height: 36px; padding: 0; }
-.segmented.text .seg::before, .segmented.text .seg::after { display: none; }
-.segmented.text .seg span { font-size: 13px; font-weight: 600; }
 
 /* Pilule en verre (choix d'une vue) */
 .gpill {
@@ -588,77 +518,43 @@ h1[tabindex]:focus { outline: none; }
 .fchip[aria-pressed="true"] { background: var(--glass-sel); color: var(--on-glass-sel); }
 .fchip i { font-style: normal; font-weight: 500; opacity: .7; }
 
-/* ---------- Seeing : nuit, heure par heure ---------- */
+/* ---------- Seeing : nuages heure par heure ---------- */
 
-/* Frise de la nuit : crépuscules, nuit noire, présence de la Lune */
-.tl { position: relative; margin-top: var(--sp-1); }
-.tl-bar { position: relative; height: 26px; border-radius: 13px; overflow: hidden; background: var(--ch-night); }
-.tl-bar i { position: absolute; top: 0; bottom: 0; }
-.tl-moon { position: relative; height: 8px; margin-top: 6px; border-radius: 4px; background: var(--fill); }
-.tl-moon i { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--wx-moon); opacity: var(--o, .8); }
-.tl-ticks { position: relative; height: 16px; margin-top: 4px; }
-.tl-ticks span { position: absolute; transform: translateX(-50%); font-size: 11px; font-weight: 500; color: var(--ch-lbl); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tl-now { position: absolute; top: -3px; bottom: 21px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ch-now); box-shadow: 0 0 0 2px rgba(0, 0, 0, .15); }
-.tl-keys { display: grid; grid-template-columns: 1fr 1fr; gap: 10px var(--sp-3); margin-top: var(--sp-4); }
-.tl-key { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
-.tl-key > .ic, .tl-key > svg { width: 22px; height: 22px; flex: none; color: var(--link); stroke-width: 1.8; }
-.tl-key b { display: block; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.tl-key small { display: block; font-size: 12px; color: var(--text-2); }
-
-/* Grille façon meteoblue : libellés fixes à gauche, heures défilantes */
-.sg { display: grid; grid-template-columns: 86px minmax(0, 1fr); margin: 0 -20px -8px 0; }
-.sg-labels, .sg-cols { --row: 30px; }
-.sg-labels { position: relative; z-index: 1; border-right: 1px solid var(--sep); }
-.sg-scroll { overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; padding-right: 20px; scroll-snap-type: x proximity; }
-.sg-scroll::-webkit-scrollbar { display: none; }
-.sg-cols { display: flex; gap: 0; padding-bottom: 8px; }
-.sg-col { flex: 0 0 46px; display: flex; flex-direction: column; scroll-snap-align: start; }
-.sg-col.midnight { box-shadow: inset 1px 0 0 var(--ch-axis); }
-.sg-col.past { opacity: .45; }
-.sg-l, .sg-c { height: var(--row); display: flex; align-items: center; }
-.sg-l { gap: 6px; padding-right: 6px; font-size: 12.5px; font-weight: 500; line-height: 1.1; color: var(--text); }
-.sg-l .ic { width: 14px; height: 14px; flex: none; color: var(--link); stroke-width: 2; }
-.sg-l small { font-size: 10.5px; color: var(--text-3); font-weight: 500; }
-.sg-c { justify-content: center; padding: 2px; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.sg-c > span {
-  display: grid; place-items: center; width: 100%; height: 100%; border-radius: 7px;
-  background: var(--c, transparent); color: var(--c-on, var(--text));
+.clouds { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+.cn-axis, .cn-strip { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: var(--g); --g: 2px; }
+.cn-axis span { display: flex; justify-content: center; font-size: 11px; font-weight: 500; white-space: nowrap; color: var(--ch-lbl); font-variant-numeric: tabular-nums; }
+.cn { display: flex; flex-direction: column; gap: 8px; }
+.cn-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.cn-head b { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.cn-head > span:not(.chip) { font-size: 13px; color: var(--text-2); white-space: nowrap; }
+.cn-head .chip { margin-left: auto; align-self: center; }
+.cn-star { align-self: center; width: 14px; height: 14px; color: var(--accent); fill: var(--accent); stroke: none; }
+.cn.best .cn-head b { color: var(--accent); }
+/* Taille des chiffres selon la largeur des cases (de 8 à 12 px). */
+.cn-strip { position: relative; container-type: inline-size; }
+.cn-c {
+  display: flex; align-items: center; justify-content: center; height: 30px; border-radius: 5px;
+  background: var(--cl); color: var(--cl-on);
+  font-size: clamp(8px, calc(100cqw / var(--n) * .46), 12px); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.2px;
 }
-.sg-c.plain > span { font-weight: 500; color: var(--text-2); }
-.sg-c.cl > span { background: var(--cl); color: var(--cl-on); border-radius: 4px; }
-.sg-col .sg-c.cl:first-of-type > span { border-radius: 4px; }
-.sg-c.two > span { font-size: 10px; line-height: 1.05; font-weight: 600; }
-.sg-c.two > span em { font-style: normal; font-weight: 500; opacity: .75; }
-.sg-c.dim > span { opacity: .45; }
-.sg-head { height: 40px !important; }
-.sg-hour { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; width: 100%; height: 100%; padding-bottom: 4px; }
-.sg-hour b { font-size: 12.5px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-.sg-hour i { display: block; width: 34px; height: 5px; border-radius: 3px; background: var(--dk); }
-.sg-day { position: absolute; top: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
-.sg-col { position: relative; }
-.sg-grp { height: 22px !important; align-items: flex-end !important; padding-bottom: 3px; font-size: 10.5px !important; font-weight: 700 !important; letter-spacing: .5px; text-transform: uppercase; color: var(--text-3) !important; }
-.sg-planets { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px 2px; font-size: 9.5px; font-weight: 700; line-height: 1.1; }
-.sg-planets i { font-style: normal; color: var(--pc); }
-.sg-moon { display: flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--text-2); }
-.sg-moon svg { width: 11px; height: 11px; }
-.sg-legend { display: flex; flex-direction: column; gap: 14px; margin-top: var(--sp-4); padding-top: 14px; border-top: 1px solid var(--sep); }
-.sg-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px var(--sp-4); font-size: 12px; color: var(--text-2); }
-.sg-keys span { display: inline-flex; align-items: center; gap: 6px; }
-.sg-keys i { display: inline-block; width: 16px; height: 8px; border-radius: 2px; background: var(--k); }
+.cn-c:first-child { border-radius: 8px 5px 5px 8px; }
+.cn-c:last-of-type { border-radius: 5px 8px 8px 5px; }
+.cn-c.none { background: var(--cell); color: var(--text-3); }
+.cn-c.past { opacity: .35; }
+:root[data-theme="light"] .cn-c { box-shadow: inset 0 0 0 1px rgba(27, 34, 80, .08); }
+/* Cadre du meilleur créneau, posé sur les cases. */
+.cn-win {
+  position: absolute; top: -3px; bottom: -3px; pointer-events: none;
+  left: calc((100% + var(--g)) * var(--a) / var(--n) - 3px);
+  width: calc((100% + var(--g)) * var(--w) / var(--n) - var(--g) + 6px);
+  border: 2px solid var(--accent); border-radius: 8px;
+}
+.cn-legend { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--sep); }
+.cn-key { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+.cn-key i { width: 28px; height: 16px; border: 2px solid var(--accent); border-radius: 6px; background: var(--cell); }
 .cl-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
 .cl-scale i { height: 8px; border-radius: 2px; background: var(--cl); }
 .cl-lbl { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--text-2); }
-
-/* Astres de la nuit */
-.planets { display: flex; flex-direction: column; }
-.planet { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3); min-height: 54px; padding: 6px 0; }
-.planet + .planet { border-top: 1px solid var(--sep); }
-.planet-dot { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff8, transparent 55%), var(--pc); box-shadow: 0 0 12px color-mix(in srgb, var(--pc) 45%, transparent); }
-.planet-txt b { display: block; font-size: 15px; font-weight: 600; }
-.planet-txt small { display: block; margin-top: 1px; font-size: 13px; color: var(--text-2); }
-.planet-r { text-align: right; font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
-.planet-r b { display: block; font-size: 15px; color: var(--text); font-weight: 600; }
-.planet.off { opacity: .5; }
 
 /* ---------- Aurora ---------- */
 
@@ -968,7 +864,7 @@ button.row:active, summary.row:active { background: var(--fill); transform: none
 .swap { animation: swap .35s var(--ease-ios) backwards; animation-delay: calc(var(--i, 0) * 25ms); }
 
 @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
-@keyframes swap { from { opacity: 0; transform: translate(var(--dx, 0px), 6px); } }
+@keyframes swap { from { opacity: 0; transform: translateY(6px); } }
 @keyframes thumb-slide { from { transform: translateX(calc(var(--k0) * 40px)); } }
 @keyframes knob-sweep { from { transform: rotate(0deg); } }
 @keyframes sea-rise { from { opacity: 0; transform: translateY(14px); } }

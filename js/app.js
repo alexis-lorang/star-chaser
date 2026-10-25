@@ -1,15 +1,15 @@
-import { PLACES, DEFAULT_PLACE, MODELS, SKIES, PLANETS, meteobluePage } from './config.js?v=5';
+import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=9';
 import {
-  fetchForecast, cachedForecast, computeHours, hourScore, nightScore, scoreClass, clearSky, qClass, seeingQ, jetQ,
-} from './seeing.js?v=5';
-import { observer, upcomingNights, skyAt, planetsTonight, geomagLat } from './astro.js?v=5';
+  fetchForecast, cachedForecast, computeHours, hourScore, nightScore, scoreClass, clearSky,
+} from './seeing.js?v=9';
+import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=9';
 import {
   fetchAurora, fetchSolarWind, fetchOvation, thresholds, kpChance, kpLabel, chanceClass, gScale,
-} from './aurora.js?v=5';
-import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=5';
-import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=5';
-import { icon, moonGlyph } from './icons.js?v=5';
-import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=5';
+} from './aurora.js?v=9';
+import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=9';
+import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=9';
+import { icon, moonGlyph } from './icons.js?v=9';
+import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=9';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -46,7 +46,7 @@ const state = {
   themePref: store.get('sc-theme', 'auto'),
   evFilter: 'all',
   showMinor: store.get('sc-minor', '0') === '1',
-  fc: null, hours: null, nights: null, night: 0, loading: false, error: null,
+  fc: null, hours: null, nights: null, loading: false, error: null,
   au: null, auError: null, sw: null, swError: null, ov: null, ovError: null,
   meteors: null, events: null, passes: null, passError: null,
   rendered: {},
@@ -88,11 +88,6 @@ function gauge(score, size = '', unit = 'sur 100') {
     <b data-count="${score ?? ''}" aria-hidden="true">${score ?? '–'}</b>${size ? '' : `<small aria-hidden="true">${unit}</small>`}
   </div>`;
 }
-
-const scaleLegend = (items, label) => `<div class="scale" role="img" aria-label="${label}" style="--n:${items.length}">
-    <div class="scale-bar" aria-hidden="true">${items.map(([cls, , col]) => `<i class="${cls ?? ''}"${col ? ` style="background:${col}"` : ''}></i>`).join('')}</div>
-    <div class="scale-lbl" aria-hidden="true">${items.map(([, l]) => `<span>${l}</span>`).join('')}</div>
-  </div>`;
 
 function spinner(cls = '') {
   const rays = Array.from({ length: 8 }, (_, i) => {
@@ -159,6 +154,7 @@ function nightSpan(n) {
 function computeNights() {
   const obs = observer(state.place);
   const byT = new Map((state.hours ?? []).map((h) => [h.t, h]));
+  const now = Date.now();
   state.nights = upcomingNights(obs, 7).map((n) => {
     const t0 = Math.floor((n.sunset ?? n.start) / H1) * H1;
     const t1 = Math.ceil((n.sunrise ?? n.end) / H1) * H1;
@@ -168,294 +164,152 @@ function computeNights() {
       const sky = skyAt(new Date(t), obs);
       hours.push({ ...h, t, sky, score: h.n ? hourScore(h, sky) : null });
     }
-    return { ...n, hours, best: nightScore(hours) };
+    // Nuit en cours : seul le reste de la nuit compte.
+    return { ...n, hours, best: nightScore(hours.filter((h) => h.t + H1 > now)) };
   });
-  if (state.night >= state.nights.length) state.night = 0;
 }
 
 // ---------- Onglet Seeing ----------
 
+const SEEING_NIGHTS = 5;
+
 function renderSeeing(enter = false) {
   const body = $('#seeing-body');
-  if (!state.nights?.some((n) => n.best)) {
+  const nights = state.nights?.slice(0, SEEING_NIGHTS);
+  if (!nights?.some((n) => n.best)) {
     body.innerHTML = state.error ? errorCard(state.error) : skeleton();
     return;
   }
-  const nights = state.nights;
-  const top = nights.reduce((m, n, k) => (n.best && (!m || n.best.score > m.n.best.score) ? { n, k } : m), null);
-  const c = scoreClass(top.n.best.score);
-  const win = top.n.best.hours;
+  const top = nights.reduce((m, n) => (n.best && (!m || n.best.score > m.best.score) ? n : m), null);
+  const c = scoreClass(top.best.score);
+  const win = top.best.hours;
   const avg = (key) => win.reduce((s, h) => s + (h[key] ?? 0), 0) / win.length;
   const mid = win[Math.floor(win.length / 2)];
-  const hero = `<button class="card hero tap ${c.key}" data-night="${top.k}" data-scroll="night">
-      <div class="hero-scene">${nightScene({ cls: c.key, clouds: { low: avg('low'), mid: avg('mid'), high: avg('high') }, moon: mid.sky.moon, label: `Ciel prévu ${nightLabel(top.n).toLowerCase()}` })}
+  const hero = `<div class="card hero ${c.key}">
+      <div class="hero-scene">${nightScene({ cls: c.key, clouds: { low: avg('low'), mid: avg('mid'), high: avg('high') }, moon: mid.sky.moon, label: `Ciel prévu ${nightLabel(top).toLowerCase()}` })}
         <span class="hero-badge glass">${icon('star')}Meilleure nuit</span></div>
       <div class="hero-info">
         <div class="hero-row">
           <div class="hero-text">
-            <h2 class="hero-site">${nightLabel(top.n)}</h2>
-            <p class="hero-meta">${icon('clock')}${hh(top.n.best.from)} – ${hh(top.n.best.to)} · Lune ${pct(top.n.moon.illum)}</p>
+            <h2 class="hero-site">${nightLabel(top)}</h2>
+            <p class="hero-meta">${icon('clock')}${hh(top.best.from)} – ${hh(top.best.to)}</p>
             <span class="chip ${c.key}">${c.label}</span>
           </div>
-          ${gauge(top.n.best.score)}
+          ${gauge(top.best.score)}
         </div>
       </div>
-      <div class="hero-foot">${icon('telescope')}<span class="hero-note">${cap(windowSummary(win))}</span>${icon('chevron', 'hero-chev')}</div>
-    </button>`;
+      <div class="hero-foot">${icon('cloud')}<span class="hero-note">${windowNote(top)}</span></div>
+    </div>`;
 
-  const picker = nights.map((n, k) => {
-    const s = n.best?.score;
-    const cc = scoreClass(s);
-    return `<button class="seg tap ${cc.key}" role="tab" data-night="${k}" aria-selected="${k === state.night}"
-        style="--v:${Math.max(0.05, (s ?? 0) / 100).toFixed(2)};--j:${k}" aria-label="${nightLabel(n)} : ${s ?? 'pas de données'}">
-      <span>${nightShort(n)}</span><b>${s ?? '–'}</b></button>`;
-  }).join('');
-
+  const hours = cloudHours(nights);
+  const byT = new Map((state.hours ?? []).map((h) => [h.t, h]));
+  const step = hours.length > 9 ? 2 : 1;
+  const axis = hours.map((H) => `<span>${H % step === 0 ? `${H % 24} h` : ''}</span>`).join('');
   body.innerHTML = `
     ${hero}
-    <section class="section" id="night-section">
-      <div class="section-head"><h2>Nuits</h2><span class="section-sub">${nights.length} prochaines ${helpBtn('help-seeing', 'Comment lire les prévisions')}</span></div>
-      <div class="segmented" role="tablist" aria-label="Nuit" style="--n:${nights.length}">
-        <span class="seg-thumb" style="--k:${state.night}"></span>${picker}
+    <section class="section">
+      <div class="section-head"><h2>Nuages</h2><span class="section-sub">${MODELS[state.model].label} ${helpBtn('help-seeing', 'Comment lire les prévisions')}</span></div>
+      <div class="card clouds">
+        <div class="cn-axis" style="--n:${hours.length}" aria-hidden="true">${axis}</div>
+        ${nights.map((n) => cloudRow(n, hours, byT, n === top)).join('')}
+        <div class="cn-legend">
+          <div><div class="cl-scale">${[0, 25, 50, 75, 100].map((v) => `<i style="--cl:${cloudColor(v)}"></i>`).join('')}</div>
+            <div class="cl-lbl"><span>Dégagé · 0 %</span><span>Couvert · 100 %</span></div></div>
+          <div class="cn-key"><i></i>Meilleur créneau de la nuit</div>
+        </div>
       </div>
-      ${scaleLegend(['low', 'maybe', 'good', 'top'].map((k) => [k, scoreClass({ top: 65, good: 40, maybe: 20, low: 0 }[k]).label]),
-        'Légende de l’indice d’observation, du plus faible au plus fort')}
     </section>
-    <div id="s-night" class="stack"></div>
     <footer class="foot">
       Modèles ICON, ECMWF et GFS, aérosols CAMS via <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> ·
       éphémérides <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener">Astronomy Engine</a>
     </footer>`;
-  renderNight(enter);
-  if (enter) animateIn(body, true, [...body.children].filter((el) => el.id !== 's-night').concat([...$('#s-night').children]));
+  if (enter) animateIn(body, true);
 }
 
-function windowSummary(hours) {
-  const clear = hours.reduce((s, h) => s + (clearSky(h) ?? 0), 0) / hours.length;
-  const see = hours.reduce((s, h) => s + (h.seeing ?? 0), 0) / hours.length;
-  const tr = hours.reduce((s, h) => s + (h.transp ?? 0), 0) / hours.length;
-  const sky = clear > 0.85 ? 'ciel dégagé' : clear > 0.6 ? 'quelques nuages' : clear > 0.35 ? 'ciel nuageux' : 'ciel couvert';
-  const trw = tr >= 4.2 ? 'transparence excellente' : tr >= 3.4 ? 'bonne transparence' : tr >= 2.5 ? 'transparence moyenne' : 'ciel laiteux';
-  return `${sky}, seeing ${num(see)}″, ${trw}`;
-}
-
-function renderNight(enter = false) {
-  const n = state.nights[state.night];
-  const box = $('#s-night');
-  box.innerHTML = `${timelineCard(n)}${gridCard(n)}${planetsCard(n)}
-    <div class="card about">
-      ${cardHead('pin', state.place.name)}
-      <p class="sheet-p">${num(state.place.lat, 3)}° N, ${num(state.place.lon, 3)}° E · ${int(state.place.alt)} m. ${state.place.note ?? ''}</p>
-      <a class="pill-btn tap" href="${meteobluePage(state.place)}" target="_blank" rel="noopener">Seeing meteoblue ${icon('external')}</a>
-    </div>`;
-  if (!enter) {
-    replay([...box.children], 'swap');
-    countUp(box);
-  }
-  // La grille démarre à l'heure en cours pour la nuit en cours.
-  const sc = $('.sg-scroll', box);
-  const cols = $$('.sg-col', box);
-  const k = cols.findIndex((c) => c.classList.contains('nowcol'));
-  if (sc && k > 0) sc.scrollLeft = (k - 1) * cols[0].offsetWidth;
-}
-
-// Couleurs du crépuscule (barre de la nuit et pastille sous chaque heure).
-function darkColor(sunAlt) {
-  if (sunAlt > 0) return '#7f8fd6';
-  if (sunAlt > -6) return '#5864ad';
-  if (sunAlt > -12) return '#3a4488';
-  if (sunAlt > -18) return '#252e66';
-  return '#111738';
-}
-
-function timelineCard(n) {
-  const a = n.start, b = n.end, span = b - a;
-  const x = (t) => (((Math.max(a, Math.min(b, t)) - a) / span) * 100).toFixed(2);
-  const segs = [];
-  const bands = [[a, n.civil[0], 0], [n.civil[0], n.naut[0], -6], [n.naut[0], n.astro[0], -12], [n.astro[0], n.astro[1], -18],
-    [n.astro[1], n.naut[1], -12], [n.naut[1], n.civil[1], -6], [n.civil[1], b, 0]];
-  for (const [s, e, alt] of bands) if (s != null && e != null && e > s) segs.push(`<i style="left:${x(s)}%;width:${(x(e) - x(s)).toFixed(2)}%;background:${darkColor(alt - 1)}"></i>`);
-  // Été : pas de nuit astronomique (bande nautique au milieu).
-  if (!n.astro[0] && n.naut[0] && n.naut[1]) segs.push(`<i style="left:${x(n.naut[0])}%;width:${(x(n.naut[1]) - x(n.naut[0])).toFixed(2)}%;background:${darkColor(-13)}"></i>`);
-  const moon = n.moon.up.map(([s, e]) => `<i style="left:${x(s)}%;width:${(x(e) - x(s)).toFixed(2)}%;--o:${(0.35 + 0.65 * n.moon.illum).toFixed(2)}"></i>`).join('');
-  const ticks = [];
-  for (let t = Math.ceil(a / (2 * H1)) * 2 * H1; t < b; t += 2 * H1) {
-    const p = Number(x(t));
-    if (p > 4 && p < 96) ticks.push(`<span style="left:${p}%">${hh(t)}</span>`);
-  }
-  const now = Date.now();
-  const nowMark = now > a && now < b ? `<i class="tl-now" style="left:${x(now)}%"></i>` : '';
-  const dark = n.astro[0] && n.astro[1];
-  const moonless = n.moonless.length ? n.moonless.map(([s, e]) => `${hm(s)} → ${hm(e)}`).join(', ') : 'aucune';
-  const key = (ic, b2, small) => `<div class="tl-key">${ic}<div><b>${b2}</b><small>${small}</small></div></div>`;
-  return `<div class="card">
-    ${cardHead('moon', cap(nightSpan(n)))}
-    <div class="tl" role="img" aria-label="Crépuscules et présence de la Lune">
-      <div class="tl-bar">${segs.join('')}</div>
-      <div class="tl-moon">${moon}</div>
-      <div class="tl-ticks">${ticks.join('')}</div>
-      ${nowMark}
-    </div>
-    <div class="tl-keys">
-      ${key(icon('sunset'), hm(n.sunset), 'Coucher du Soleil')}
-      ${key(icon('sunrise'), hm(n.sunrise), 'Lever du Soleil')}
-      ${key(icon('star'), dark ? `${hm(n.astro[0])} → ${hm(n.astro[1])}` : 'Pas de nuit noire', dark ? 'Nuit noire, Soleil sous −18°' : 'Crépuscule toute la nuit')}
-      ${key(icon('eye'), moonless, 'Nuit noire sans Lune')}
-      ${key(moonGlyph(n.moon.phase, '', 22), `${n.moon.name}`, `Lune éclairée à ${pct(n.moon.illum)}`)}
-      ${key(icon('w-moon'), `${n.moon.rise ? `↑ ${hm(n.moon.rise)}` : ''}${n.moon.rise && n.moon.set ? '  ' : ''}${n.moon.set ? `↓ ${hm(n.moon.set)}` : ''}` || 'Levée toute la nuit', 'Lever et coucher de la Lune')}
-    </div>
-  </div>`;
+// Créneau retenu : nuages et Lune, ce qui fait l'indice. « Peu nuageux (18 %) · sans la Lune »
+function windowNote(n) {
+  const win = n.best.hours;
+  const cc = Math.round(win.reduce((s, h) => s + (h.total ?? 0), 0) / win.length);
+  const sky = cc < 10 ? 'Ciel dégagé' : cc < 30 ? 'Peu nuageux' : cc < 70 ? 'Nuageux' : 'Couvert';
+  const m = win[Math.floor(win.length / 2)].sky.moon;
+  const moon = m.alt <= 0 || m.illum <= 0.1 ? 'sans la Lune' : `Lune ${m.alt < 20 ? 'basse' : 'haute'} (${pct(m.illum)})`;
+  return `${sky} (${cc} %) · ${moon}`;
 }
 
 // Couverture nuageuse : bleu nuit (dégagé) → blanc (couvert), comme meteoblue.
 function cloudColor(cc) {
-  const a = [24, 34, 79], b = [238, 241, 251];
+  const a = [22, 38, 104], b = [238, 241, 251];
   const k = Math.max(0, Math.min(1, cc / 100)) ** 0.9;
   return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',')})`;
 }
 
-const GRID_ROWS = [
-  { k: 'head' },
-  { k: 'score', label: 'Indice' },
-  { grp: 'Nuages' },
-  { k: 'low', label: 'Bas' },
-  { k: 'mid', label: 'Moyens' },
-  { k: 'high', label: 'Hauts' },
-  { grp: 'Seeing' },
-  { k: 'seeing', label: 'Seeing', sub: '″' },
-  { k: 'idx1', label: 'Indice 1' },
-  { k: 'idx2', label: 'Indice 2' },
-  { k: 'jet', label: 'Jet stream', sub: 'm/s' },
-  { k: 'bad', label: 'Couches', sub: 'km' },
-  { grp: 'Atmosphère' },
-  { k: 'transp', label: 'Transparence' },
-  { k: 'temp', label: 'Temp.', sub: '°C' },
-  { k: 'rh', label: 'Humidité', sub: '%' },
-  { k: 'dew', label: 'Rosée', sub: 'écart' },
-  { k: 'wind', label: 'Vent', sub: 'km/h' },
-  { grp: 'Ciel' },
-  { k: 'moon', label: 'Lune', sub: 'haut.' },
-  { k: 'planets', label: 'Planètes' },
-];
-
-function gridCell(row, h) {
-  const none = '<div class="sg-c plain"><span>–</span></div>';
-  const has = h.n > 0;
-  switch (row.k) {
-    case 'score': {
-      if (h.score == null) return has && h.sky.sun.alt > -6 ? '<div class="sg-c plain"><span>☼</span></div>' : none;
-      return `<div class="sg-c ${scoreClass(h.score).key}"><span>${h.score}</span></div>`;
-    }
-    case 'low': case 'mid': case 'high': {
-      if (!has || h[row.k] == null) return none;
-      const v = h[row.k];
-      return `<div class="sg-c cl" style="--cl:${cloudColor(v)};--cl-on:${v > 55 ? '#18224f' : 'rgba(255,255,255,.85)'}"><span>${Math.round(v)}</span></div>`;
-    }
-    case 'seeing': return has && h.seeing != null ? `<div class="sg-c ${seeingQ(h.seeing)}"><span>${num1(h.seeing)}</span></div>` : none;
-    case 'idx1': case 'idx2': return has && h[row.k] != null ? `<div class="sg-c ${qClass(h[row.k])}"><span>${Math.round(h[row.k])}</span></div>` : none;
-    case 'jet': return has && h.jet != null ? `<div class="sg-c ${jetQ(h.jet)}"><span>${Math.round(h.jet)}</span></div>` : none;
-    case 'bad': {
-      if (!has || !h.bad) return none;
-      const km = (z) => (z < 9950 ? num(z / 1000) : int(z / 1000));
-      return `<div class="sg-c two plain"><span>${km(h.bad.bot)}–${km(h.bad.top)}<em>${num(h.bad.grad, 2)}</em></span></div>`;
-    }
-    case 'transp': return has && h.transp != null ? `<div class="sg-c ${qClass(h.transp)}"><span>${Math.round(h.transp)}</span></div>` : none;
-    case 'temp': return has && h.temp != null ? `<div class="sg-c plain"><span>${int(h.temp)}°</span></div>` : none;
-    case 'rh': return has && h.rh != null ? `<div class="sg-c plain"><span>${int(h.rh)}</span></div>` : none;
-    case 'dew': {
-      if (!has || h.temp == null || h.td == null) return none;
-      const d = h.temp - h.td;
-      return d < 2 ? `<div class="sg-c q1" title="Risque de rosée"><span>${num(d)}°</span></div>` : `<div class="sg-c plain"><span>${num(d, 0)}°</span></div>`;
-    }
-    case 'wind': {
-      if (!has || h.wind == null) return none;
-      return h.wind > 25 ? `<div class="sg-c q2"><span>${int(h.wind)}</span></div>` : `<div class="sg-c plain"><span>${int(h.wind)}</span></div>`;
-    }
-    case 'moon': {
-      const m = h.sky.moon;
-      if (m.alt <= 0) return none;
-      return `<div class="sg-c plain"><span class="sg-moon" style="opacity:${(0.5 + 0.5 * m.illum).toFixed(2)}">${Math.round(m.alt)}°</span></div>`;
-    }
-    case 'planets': {
-      const up = h.sky.planets.filter((p) => p.alt > 10 && ['Venus', 'Mars', 'Jupiter', 'Saturn', 'Mercury'].includes(p.body));
-      return up.length ? `<div class="sg-c"><span class="sg-planets">${up.map((p) => `<i style="--pc:${p.color}">${p.letter}</i>`).join('')}</span></div>` : none;
-    }
-    default: return none;
-  }
+// Heure locale d'un instant, comptée depuis minuit du jour de la nuit : 17,5 le soir, 30,8 le lendemain matin.
+function clockHour(t, n) {
+  const d = new Date(t);
+  return d.getHours() + d.getMinutes() / 60 + (d.getDate() === new Date(n.noon).getDate() ? 0 : 24);
 }
 
-function gridCard(n) {
+// Heures affichées : du crépuscule civil à l'aube civile, les mêmes pour toutes les nuits (colonnes alignées).
+function cloudHours(nights) {
+  let a = Infinity, b = -Infinity;
+  for (const n of nights) {
+    a = Math.min(a, Math.ceil(clockHour(n.civil[0] ?? n.sunset ?? n.noon + 10 * H1, n) - 0.5));
+    b = Math.max(b, Math.floor(clockHour(n.civil[1] ?? n.sunrise ?? n.noon + 15 * H1, n) - 0.5));
+  }
+  return Array.from({ length: Math.max(1, b - a + 1) }, (_, i) => a + i);
+}
+
+// Une nuit : nom, indice, puis la couverture totale heure par heure ; le meilleur créneau est encadré.
+function cloudRow(n, hours, byT, isTop) {
+  const day = new Date(n.noon);
   const now = Date.now();
-  const labels = GRID_ROWS.map((r) => {
-    if (r.k === 'head') return '<div class="sg-l sg-head"></div>';
-    if (r.grp) return `<div class="sg-l sg-grp">${r.grp}</div>`;
-    return `<div class="sg-l"><span>${r.label}${r.sub ? `<br><small>${r.sub}</small>` : ''}</span></div>`;
+  const ts = hours.map((H) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), H).getTime());
+  const cells = ts.map((t) => {
+    const h = byT.get(t);
+    const past = t + H1 <= now ? ' past' : '';
+    if (!h?.n || h.total == null) return `<span class="cn-c none${past}">–</span>`;
+    const v = Math.round(h.total);
+    return `<span class="cn-c${past}" style="--cl:${cloudColor(v)};--cl-on:${v > 55 ? '#18224f' : 'rgba(255,255,255,.9)'}">${v}</span>`;
   }).join('');
-  let nowSet = false;
-  const cols = n.hours.map((h) => {
-    const d = new Date(h.t);
-    const isNow = !nowSet && h.t + H1 > now && h.t <= now + H1;
-    if (isNow) nowSet = true;
-    const head = `<div class="sg-c sg-head"><div class="sg-hour">${d.getHours() === 0 ? `<span class="sg-day">${fmtWd.format(d)}</span>` : ''}<b>${d.getHours()} h</b><i style="--dk:${darkColor(h.sky.sun.alt)}"></i></div></div>`;
-    const cells = GRID_ROWS.slice(1).map((r) => (r.grp ? '<div class="sg-c sg-grp"></div>' : gridCell(r, h))).join('');
-    return `<div class="sg-col${d.getHours() === 0 ? ' midnight' : ''}${h.t + H1 < now ? ' past' : ''}${isNow ? ' nowcol' : ''}" role="group" aria-label="${hh(h.t)}">${head}${cells}</div>`;
-  }).join('');
-  const qItems = [['q1', 'Mauvais'], ['q2', ''], ['q3', 'Moyen'], ['q4', ''], ['q5', 'Excellent']];
-  return `<div class="card grid-card">
-    ${cardHead('layers', 'Heure par heure', `<span class="head-extra">${MODELS[state.model].label}</span>`)}
-    <div class="sg">
-      <div class="sg-labels">${labels}</div>
-      <div class="sg-scroll"><div class="sg-cols">${cols}</div></div>
+  const b = n.best;
+  const c = scoreClass(b?.score);
+  const a = b ? ts.indexOf(b.from) : -1;
+  const win = a >= 0 && b.score >= 40
+    ? `<b class="cn-win" style="--a:${a};--w:${Math.min(Math.round((b.to - b.from) / H1), ts.length - a)}"></b>` : '';
+  return `<div class="cn${isTop ? ' best' : ''}">
+    <div class="cn-head">
+      <b>${nightLabel(n)}</b><span>${fmtDM.format(day)}</span>${isTop ? icon('star', 'cn-star') : ''}
+      <span class="chip sm ${c.key}">${b ? `${b.score} · ${c.label}` : c.label}</span>
     </div>
-    <div class="sg-legend">
-      <div><div class="cl-scale">${[0, 25, 50, 75, 100].map((v) => `<i style="--cl:${cloudColor(v)}"></i>`).join('')}</div>
-        <div class="cl-lbl"><span>Nuages : 0 %</span><span>100 %</span></div></div>
-      ${scaleLegend(qItems.map(([k, l]) => [k, l]), 'Seeing, indices, jet stream et transparence : de mauvais à excellent')}
-      <div class="sg-keys">${PLANETS.slice(0, 5).map((p) => `<span><b style="color:${p.color}">${p.letter}</b>${p.name}</span>`).join('')}</div>
-    </div>
+    <div class="cn-strip" style="--n:${hours.length}" role="img" aria-label="${nightLabel(n)} : ${cloudSummary(n).toLowerCase()}">${cells}${win}</div>
   </div>`;
 }
 
-function planetsCard(n) {
-  n.planets ??= planetsTonight(n, observer(state.place));
-  const list = [...n.planets].sort((a, b) => (b.visible - a.visible) || (a.mag - b.mag));
-  const rows = list.map((p) => `<div class="planet${p.visible ? '' : ' off'}">
-      <span class="planet-dot" style="--pc:${p.color}"></span>
-      <div class="planet-txt"><b>${p.name}</b><small>${p.visible ? `${hm(p.from)} → ${hm(p.to)} · ${p.con}` : 'Pas visible cette nuit'}</small></div>
-      <div class="planet-r">${p.visible ? `<b>${Math.round(p.best.alt)}°</b>mag. ${mag(p.mag)}` : ''}</div>
-    </div>`).join('');
-  return `<div class="card">${cardHead('planet', 'Planètes cette nuit', '<span class="head-extra">hauteur max.</span>')}<div class="planets">${rows}</div></div>`;
-}
-
-function selectNight(k, scroll = false) {
-  if (!state.nights?.[k]) return;
-  if (k !== state.night) {
-    const box = $('#s-night');
-    box?.style.setProperty('--dx', `${k > state.night ? 28 : -28}px`);
-    clearTimeout(selectNight.t);
-    selectNight.t = setTimeout(() => box?.style.removeProperty('--dx'), 700);
-    state.night = k;
-    $$('#seeing .segmented .seg').forEach((b) => b.setAttribute('aria-selected', String(Number(b.dataset.night) === k)));
-    $('#seeing .seg-thumb')?.style.setProperty('--k', k);
-    renderNight();
+// Nuages en nuit noire (Soleil sous −12°) : « Ciel dégagé de 21 h à 4 h », « Ciel couvert, 70 % au mieux ».
+function cloudSummary(n) {
+  const dark = n.hours.filter((h) => h.sky.sun.alt < -12 && h.n && h.total != null && h.t + H1 > Date.now());
+  if (!dark.length) return 'Pas de prévision';
+  let run = null, cur = null;
+  for (const h of dark) {
+    if (h.total > 20) { cur = null; continue; }
+    cur = cur && h.t === cur.to ? { from: cur.from, to: h.t + H1 } : { from: h.t, to: h.t + H1 };
+    if (!run || cur.to - cur.from > run.to - run.from) run = cur;
   }
-  if (scroll) $('#night-section')?.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });
+  if (run && run.to - run.from >= dark.length * H1) return 'Ciel dégagé toute la nuit';
+  if (run && run.to - run.from >= 2 * H1) return `Ciel dégagé de ${hh(run.from)} à ${hh(run.to)}`;
+  if (run) return `Brève éclaircie vers ${hh(run.from)}`;
+  const min = Math.round(Math.min(...dark.map((h) => h.total)));
+  const avg = dark.reduce((s, h) => s + h.total, 0) / dark.length;
+  return `${avg < 60 ? 'Ciel nuageux' : 'Ciel couvert'}, ${min} % au mieux`;
 }
 
 const SEEING_HELP = `<div class="help-body">
-  <p><b>Indice d’observation</b> (0 à 100) : chance d’une bonne nuit au télescope, sur le meilleur créneau de deux heures
-    en nuit noire. Il combine surtout le ciel dégagé, puis le seeing, la transparence et la gêne de la Lune.</p>
-  <p><b>Nuages</b> bas, moyens et hauts, du bleu nuit (dégagé) au blanc (couvert), comme sur meteoblue.</p>
-  <p><b>Seeing</b> (secondes d’arc) : agitation de l’image due à la turbulence. Sous 1″ c’est excellent, au-delà de 2″ les
-    détails planétaires se brouillent. Il est estimé en intégrant la turbulence des couches d’air, du sol à 16 km,
-    à partir des gradients de température et du cisaillement du vent (modèle de Coulman–Dewan).</p>
-  <p><b>Indices 1 et 2</b> (1 mauvais → 5 excellent) : deux estimations indépendantes. L’indice 1 vient du seeing
-    calculé ; l’indice 2 du jet stream, des couches instables et du nombre de Richardson (turbulence dynamique).</p>
-  <p><b>Jet stream</b> : vent vers 9 à 12 km. Au-delà de 20 m/s, le seeing se dégrade nettement.</p>
-  <p><b>Couches</b> : altitude de la couche instable la plus turbulente (gradient de température potentielle au-dessus de 0,5 K/100 m).</p>
-  <p><b>Transparence</b> : aérosols (épaisseur optique CAMS) et humidité. <b>Rosée</b> : écart température – point de rosée ;
-    sous 2 °C, l’optique risque de s’embuer.</p>
-  <p><b>Planètes</b> : au-dessus de 10° de hauteur à cette heure (Me Mercure, V Vénus, Ma Mars, J Jupiter, S Saturne).</p>
+  <p><b>Meilleure nuit</b> : la plus prometteuse des ${SEEING_NIGHTS} prochaines nuits. Son indice (0 à 100) porte sur le
+    meilleur créneau de deux heures en nuit noire (Soleil sous −12°). Il dépend surtout du ciel dégagé, puis de la
+    turbulence (seeing), de la transparence et de la gêne de la Lune.</p>
+  <p><b>Nuages</b> : couverture nuageuse totale prévue, en %, du crépuscule à l’aube. Bleu nuit : ciel dégagé ;
+    blanc : ciel couvert, comme sur meteoblue. Le cadre marque le meilleur créneau des nuits bonnes ou excellentes.</p>
+  <p><b>Modèle</b> : consensus des modèles ICON, ECMWF et GFS, ou un seul modèle, à choisir dans les réglages.</p>
 </div>`;
 
 // ---------- Onglet Aurora ----------
@@ -1210,7 +1064,7 @@ const defer = (fn) => setTimeout(fn, 40);
 
 // Délégation des clics.
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-action], [data-tab], [data-night], [data-shower], [data-ev], [data-filter], [data-place], [data-model], [data-theme-pref], [data-sky], [data-geo]');
+  const t = e.target.closest('[data-action], [data-tab], [data-shower], [data-ev], [data-filter], [data-place], [data-model], [data-theme-pref], [data-sky], [data-geo]');
   if (!t) return;
   if (t.dataset.tab && t.closest('.tabbar')) return showTab(t.dataset.tab);
   if (t.dataset.place) return setPlace(t.dataset.place);
@@ -1221,7 +1075,6 @@ document.addEventListener('click', (e) => {
   if (t.dataset.filter) return setFilter(t.dataset.filter);
   if (t.dataset.shower) return openShower(t.dataset.shower);
   if (t.dataset.ev) return openEvent(t.dataset.ev);
-  if (t.dataset.night) return selectNight(Number(t.dataset.night), t.dataset.scroll === 'night');
   switch (t.dataset.action) {
     case 'settings': return openSettings();
     case 'place': return openPlaces();
@@ -1481,7 +1334,6 @@ function applyPlace(p) {
   state.fc = state.hours = state.nights = null;
   state.meteors = state.events = state.passes = null;
   state.sw = state.swError = null;
-  state.night = 0;
   state.rendered = {};
   updateStatuses();
   showTab(state.tab, { push: false });
@@ -1589,7 +1441,6 @@ addEventListener('resize', () => { fitScreen(); if (state.tab === 'aurora' && st
 document.documentElement.classList.add('no-anim');
 applyTheme();
 const start = parseHash();
-if (start.n != null) state.night = start.n;
 showTab(start.tab, { push: false });
 requestAnimationFrame(() => document.documentElement.classList.remove('no-anim'));
 updateStatuses();

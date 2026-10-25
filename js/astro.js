@@ -1,6 +1,6 @@
 // Calculs astronomiques (astronomy-engine) : Soleil, Lune, planètes, nuits, crépuscules.
 import * as A from 'https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/esm/astronomy.js';
-import { CONSTELLATIONS, PLANETS } from './config.js?v=5';
+import { CONSTELLATIONS } from './config.js?v=9';
 
 export { A };
 
@@ -130,39 +130,11 @@ export function upcomingNights(obs, n = 7, now = Date.now()) {
   return out;
 }
 
-// Ciel à un instant : Soleil, Lune et planètes au-dessus de l'horizon.
+// Ciel à un instant : Soleil et Lune.
 export function skyAt(date, obs) {
-  const sun = altAz(A.Body.Sun, date, obs);
-  const moon = moonAt(date, obs);
-  const planets = PLANETS.map((p) => ({ ...p, ...altAz(A.Body[p.body], date, obs) }));
-  return { sun, moon, planets };
+  return { sun: altAz(A.Body.Sun, date, obs), moon: moonAt(date, obs) };
 }
 
-// Planètes pendant une nuit : lever, coucher, culmination, meilleure hauteur de nuit, magnitude, constellation.
-export function planetsTonight(night, obs) {
-  const a = night.naut[0] ?? night.start, b = night.naut[1] ?? night.end;
-  return PLANETS.map((p) => {
-    const body = A.Body[p.body];
-    let best = null;
-    for (let x = a; x <= b; x += 15 * 60e3) {
-      const h = altAz(body, new Date(x), obs);
-      if (!best || h.alt > best.alt) best = { ...h, t: x };
-    }
-    const rise = search(body, obs, +1, a - 12 * H1, 1.5);
-    const set = search(body, obs, -1, a, 1.5);
-    const ill = A.Illumination(body, new Date(best.t));
-    const visible = best.alt > 8;
-    // Plage visible de nuit : heures où la planète est à plus de 8°.
-    let from = null, to = null;
-    for (let x = a; x <= b; x += 10 * 60e3) {
-      if (altAz(body, new Date(x), obs).alt > 8) { from ??= x; to = x; }
-    }
-    return {
-      ...p, best, rise, set, mag: ill.mag, visible, from, to,
-      con: constellation(best.ra, best.dec),
-    };
-  });
-}
 
 // Longitude solaire (équinoxe J2000, comme l'IMO) → instant. Précession : ~1,397° par siècle.
 export function sunLongitudeTime(lonJ2000, from) {

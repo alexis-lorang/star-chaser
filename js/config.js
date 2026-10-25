@@ -27,18 +27,15 @@ export const SKIES = {
   city: { label: 'Ville', sub: 'Quelques étoiles · mag. 4,5', lm: 4.5 },
 };
 
-export const meteobluePage = (p) =>
-  `https://www.meteoblue.com/fr/meteo/outdoorsports/seeing/${p.lat.toFixed(4)}N${p.lon.toFixed(4)}E${Math.round(p.alt ?? 0)}_Europe%2FParis`;
-
-// Planètes : nom, lettre (grille, comme meteoblue), couleur.
+// Planètes : nom, couleur.
 export const PLANETS = [
-  { body: 'Mercury', name: 'Mercure', letter: 'Me', color: '#c9b9a6' },
-  { body: 'Venus', name: 'Vénus', letter: 'V', color: '#ffe9b0' },
-  { body: 'Mars', name: 'Mars', letter: 'Ma', color: '#ff8a65' },
-  { body: 'Jupiter', name: 'Jupiter', letter: 'J', color: '#f2cf9b' },
-  { body: 'Saturn', name: 'Saturne', letter: 'S', color: '#e9d58a' },
-  { body: 'Uranus', name: 'Uranus', letter: 'U', color: '#9fe3e8' },
-  { body: 'Neptune', name: 'Neptune', letter: 'N', color: '#7d9dff' },
+  { body: 'Mercury', name: 'Mercure', color: '#c9b9a6' },
+  { body: 'Venus', name: 'Vénus', color: '#ffe9b0' },
+  { body: 'Mars', name: 'Mars', color: '#ff8a65' },
+  { body: 'Jupiter', name: 'Jupiter', color: '#f2cf9b' },
+  { body: 'Saturn', name: 'Saturne', color: '#e9d58a' },
+  { body: 'Uranus', name: 'Uranus', color: '#9fe3e8' },
+  { body: 'Neptune', name: 'Neptune', color: '#7d9dff' },
 ];
 
 // Constellations : symbole IAU → nom français.

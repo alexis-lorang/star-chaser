@@ -1,5 +1,5 @@
 // Prévisions Open-Meteo + seeing (turbulence par couches), transparence et indice d'observation.
-import { MODELS } from './config.js?v=5';
+import { MODELS } from './config.js?v=9';
 
 const LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250, 200, 150, 100];
 const SURFACE = ['cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high', 'cloud_cover', 'temperature_2m',
@@ -298,8 +298,3 @@ export function scoreClass(s) {
   if (s >= 20) return { key: 'maybe', label: 'Moyenne' };
   return { key: 'low', label: 'Mauvaise' };
 }
-
-// Classes 1–5 pour la grille.
-export const qClass = (v) => (v == null ? 'na' : `q${clamp(Math.round(v), 1, 5)}`);
-export const seeingQ = (eps) => qClass(seeingIndex(eps));
-export const jetQ = (j) => (j == null ? 'na' : j < 10 ? 'q5' : j < 20 ? 'q4' : j < 30 ? 'q3' : j < 40 ? 'q2' : 'q1');

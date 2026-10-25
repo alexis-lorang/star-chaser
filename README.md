@@ -22,11 +22,10 @@ Sur iPhone : Safari → Partager → « Sur l’écran d’accueil ». L’icôn
 
 ## Onglets
 
-- **Seeing** (inspiré de l’« astronomical seeing » de meteoblue) : meilleure nuit des 7 prochaines, choix de la nuit,
-  frise de la nuit (crépuscules civil / nautique / astronomique, présence et phase de la Lune), grille heure par heure
-  (indice d’observation, nuages bas / moyens / hauts du bleu nuit au blanc, seeing en secondes d’arc, indices 1 et 2,
-  jet stream, couche instable, transparence, température, humidité, risque de rosée, vent, hauteur de la Lune, planètes
-  levées), puis les planètes de la nuit (plage visible, hauteur max., magnitude, constellation).
+- **Seeing** (inspiré de l’« astronomical seeing » de meteoblue) : la meilleure des 5 prochaines nuits (indice, créneau,
+  nuages et Lune sur ce créneau), puis la couverture nuageuse totale heure par heure pour chacune des 5 nuits, du
+  crépuscule à l’aube, du bleu nuit (dégagé) au blanc (couvert). Le meilleur créneau des nuits bonnes ou excellentes
+  est encadré en doré.
 - **Aurora** : chance d’aurore sur les 3 prochaines nuits (Kp prévu × nuages × Lune), graphique Kp observé / prévu
   avec les seuils du lieu, vent solaire en direct (vitesse, densité, Bz, Bt), ovale auroral OVATION sur une carte,
   tendance à 27 jours, seuils Kp pour le lieu (latitude géomagnétique).
@@ -48,7 +47,8 @@ Indice 2 : jet stream, couches instables (dθ/dz > 0,5 K/100 m) et nombre de Ric
 optique des aérosols (CAMS, 5 jours) et humidité. Heuristique à confronter au terrain.
 
 **Indice d’observation** (`hourScore`, `nightScore`) : ciel dégagé (dominant), seeing, transparence, Lune, obscurité ;
-la nuit retient le meilleur créneau de deux heures en nuit noire ou nautique.
+la nuit retient le meilleur créneau de deux heures en nuit noire ou nautique (pour la nuit en cours, parmi les heures
+restantes). Le seeing et la transparence ne sont plus affichés mais entrent toujours dans l’indice.
 
 **Aurores** (`js/aurora.js`) : bord de l’ovale ≈ 66,5° − 2,05 · Kp de latitude géomagnétique ; visible à l’œil nu
 ~3,5° plus au sud, en photo ~5,5° plus au sud. Pour le Donon (49,3° géomagnétique) : Kp 6 en photo, 7 à l’œil nu.
@@ -74,6 +74,6 @@ IMO (essaims) · CelesTrak (orbites) · Astronomy Engine, satellite.js, d3-geo, 
 - `js/meteors.js` : essaims, maximum, taux visibles
 - `js/events.js` : éclipses, planètes, Lune, passages de satellites
 - `js/scene.js` : illustrations (nuit, aurore, étoiles filantes, événements)
-- `js/app.js` : interface (onglets, grilles, graphiques, carte, feuilles, réglages)
+- `js/app.js` : interface (onglets, bandes de nuages, graphiques, carte, feuilles, réglages)
 - `icon.svg` : source de l’icône ; `apple-touch-icon.png` (180 px) et `icon-192.png` en sont rendus avec QuickLook
   (`qlmanage -t -s 1024 icon.svg`, puis `magick … -resize`).
