@@ -1,6 +1,6 @@
 // Calculs astronomiques (astronomy-engine) : Soleil, Lune, planètes, nuits, crépuscules.
 import * as A from 'https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/esm/astronomy.js';
-import { CONSTELLATIONS } from './config.js?v=9';
+import { CONSTELLATIONS } from './config.js?v=11';
 
 export { A };
 

@@ -1,15 +1,15 @@
-import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=9';
+import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=11';
 import {
   fetchForecast, cachedForecast, computeHours, hourScore, nightScore, scoreClass, clearSky,
-} from './seeing.js?v=9';
-import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=9';
+} from './seeing.js?v=11';
+import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=11';
 import {
   fetchAurora, fetchSolarWind, fetchOvation, thresholds, kpChance, kpLabel, chanceClass, gScale,
-} from './aurora.js?v=9';
-import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=9';
-import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=9';
-import { icon, moonGlyph } from './icons.js?v=9';
-import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=9';
+} from './aurora.js?v=11';
+import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=11';
+import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=11';
+import { icon, moonGlyph } from './icons.js?v=11';
+import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=11';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -269,7 +269,7 @@ function cloudRow(n, hours, byT, isTop) {
     const past = t + H1 <= now ? ' past' : '';
     if (!h?.n || h.total == null) return `<span class="cn-c none${past}">–</span>`;
     const v = Math.round(h.total);
-    return `<span class="cn-c${past}" style="--cl:${cloudColor(v)};--cl-on:${v > 55 ? '#18224f' : 'rgba(255,255,255,.9)'}">${v}</span>`;
+    return `<span class="cn-c${v >= 100 ? ' c3' : ''}${past}" style="--cl:${cloudColor(v)};--cl-on:${v > 55 ? '#18224f' : 'rgba(255,255,255,.9)'}">${v}</span>`;
   }).join('');
   const b = n.best;
   const c = scoreClass(b?.score);

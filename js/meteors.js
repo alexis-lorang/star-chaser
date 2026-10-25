@@ -1,6 +1,6 @@
 // Pluies d'étoiles filantes : liste de travail de l'IMO (International Meteor Organization),
 // maximum calculé chaque année à partir de la longitude solaire (J2000), taux visible selon le radiant et la Lune.
-import { A, observer, altAz, radecAlt, sunAlt, nightOf, localNoon, sunLongitudeTime, sunLongitudeJ2000, constellation, phaseName } from './astro.js?v=9';
+import { A, observer, altAz, radecAlt, sunAlt, nightOf, localNoon, sunLongitudeTime, sunLongitudeJ2000, constellation, phaseName } from './astro.js?v=11';
 
 /*
  * code, nom, début et fin d'activité [mois, jour], longitude solaire du maximum (λ☉ J2000), ZHR,

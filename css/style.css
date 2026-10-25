@@ -520,23 +520,24 @@ h1[tabindex]:focus { outline: none; }
 
 /* ---------- Seeing : nuages heure par heure ---------- */
 
-.clouds { display: flex; flex-direction: column; gap: 14px; padding: 16px; }
-.cn-axis, .cn-strip { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: var(--g); --g: 2px; }
+.clouds { display: flex; flex-direction: column; gap: 14px; padding: 16px 12px; }
+.cn-axis, .cn-strip { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: var(--g); --g: 3px; }
 .cn-axis span { display: flex; justify-content: center; font-size: 11px; font-weight: 500; white-space: nowrap; color: var(--ch-lbl); font-variant-numeric: tabular-nums; }
 .cn { display: flex; flex-direction: column; gap: 8px; }
-.cn-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.cn-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; padding: 0 4px; }
 .cn-head b { font-size: 15px; font-weight: 600; white-space: nowrap; }
 .cn-head > span:not(.chip) { font-size: 13px; color: var(--text-2); white-space: nowrap; }
 .cn-head .chip { margin-left: auto; align-self: center; }
 .cn-star { align-self: center; width: 14px; height: 14px; color: var(--accent); fill: var(--accent); stroke: none; }
 .cn.best .cn-head b { color: var(--accent); }
-/* Taille des chiffres selon la largeur des cases (de 8 à 12 px). */
+/* Taille des chiffres selon la largeur des cases ; chiffres proportionnels (« 1 » étroit) pour laisser de l'air autour de « 100 ». */
 .cn-strip { position: relative; container-type: inline-size; }
 .cn-c {
   display: flex; align-items: center; justify-content: center; height: 30px; border-radius: 5px;
   background: var(--cl); color: var(--cl-on);
-  font-size: clamp(8px, calc(100cqw / var(--n) * .46), 12px); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.2px;
+  font-size: clamp(9px, calc(100cqw / var(--n) * .45), 12.5px); font-weight: 600;
 }
+.cn-c.c3 { font-size: clamp(8.5px, calc(100cqw / var(--n) * .41), 11.5px); }
 .cn-c:first-child { border-radius: 8px 5px 5px 8px; }
 .cn-c:last-of-type { border-radius: 5px 8px 8px 5px; }
 .cn-c.none { background: var(--cell); color: var(--text-3); }
@@ -549,7 +550,7 @@ h1[tabindex]:focus { outline: none; }
   width: calc((100% + var(--g)) * var(--w) / var(--n) - var(--g) + 6px);
   border: 2px solid var(--accent); border-radius: 8px;
 }
-.cn-legend { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--sep); }
+.cn-legend { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; padding: 14px 4px 0; border-top: 1px solid var(--sep); }
 .cn-key { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
 .cn-key i { width: 28px; height: 16px; border: 2px solid var(--accent); border-radius: 6px; background: var(--cell); }
 .cl-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }

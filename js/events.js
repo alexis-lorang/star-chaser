@@ -1,7 +1,7 @@
 // Événements plus rares : éclipses, passages de stations spatiales, planètes (oppositions, élongations,
 // conjonctions, transits), Lune (super lunes, lunes bleues, occultations).
-import { A, observer, altAz, constellation, sunAlt } from './astro.js?v=9';
-import { PLANETS, SATELLITES } from './config.js?v=9';
+import { A, observer, altAz, constellation, sunAlt } from './astro.js?v=11';
+import { PLANETS, SATELLITES } from './config.js?v=11';
 
 const DAY = 86400e3;
 const H1 = 3600e3;
