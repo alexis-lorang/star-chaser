@@ -643,7 +643,6 @@ h1[tabindex]:focus { outline: none; }
 .kp-keys .k-de { border-top: 2px solid #b08cff; }
 .kp-keys .k-cur { width: 2px; height: 12px; border-radius: 1px; background: var(--accent); }
 .kp-keys .k-cme { width: 14px; height: 10px; border-radius: 2px; background: var(--aurora-r); opacity: .4; }
-#en-card .pill-btn { margin-top: var(--sp-4); }
 
 /* Carte de l'ovale */
 .map-wrap { position: relative; margin: 0 -20px; aspect-ratio: 1 / 1; }
@@ -674,13 +673,28 @@ h1[tabindex]:focus { outline: none; }
 
 /* ---------- Meteors ---------- */
 
-.ribbon { display: block; width: 100%; height: auto; overflow: visible; }
-.rb-month { font: 600 10px var(--font); fill: var(--ch-lbl); text-anchor: middle; text-transform: uppercase; }
-.rb-grid { stroke: var(--ch-grid); stroke-width: 1; }
-.rb-name { font: 600 11px var(--font); fill: var(--text); }
-.rb-name.minor { fill: var(--text-2); font-weight: 500; }
+/* Frise : noms figés, dates qui défilent jusqu'au bord droit de la carte, fondu sur les bords. */
+.rb { display: flex; margin-right: -20px; }
+.rb-names { flex: none; display: flex; flex-direction: column; padding-right: 8px; }
+.rb-names span { display: flex; align-items: center; padding-top: 4px; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--text); }
+.rb-scroll {
+  flex: 1; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 24px), transparent);
+}
+.rb-scroll::-webkit-scrollbar { display: none; }
+.ribbon { display: block; overflow: visible; }
+.rb-track { position: relative; width: max-content; }
+.rb-months { position: absolute; top: 0; left: 0; display: flex; }
+.rb-months span { flex: none; }
+.rb-months b { position: sticky; left: 0; display: inline-block; padding: 2px 6px 0 11px; font-size: 10px; font-weight: 700; line-height: 12px; letter-spacing: .4px; text-transform: uppercase; white-space: nowrap; color: var(--text-2); }
+.rb-dnum { font: 500 10px var(--font); fill: var(--ch-lbl); text-anchor: middle; font-variant-numeric: tabular-nums; }
+.rb-grid { stroke: var(--ch-axis); stroke-width: 1; }
+.rb-grid.minor { stroke: var(--ch-grid); }
 .rb-bar { fill: var(--c); }
 .rb-peak { fill: #fff; stroke: var(--c); stroke-width: 2; }
+.rb-date { font: 600 9.5px var(--font); fill: var(--text); text-anchor: middle; }
+.ribbon .past { opacity: .4; }
 .rb-now { stroke: var(--accent); stroke-width: 1.5; }
 .rb-now-lbl { font: 700 10px var(--font); fill: var(--accent); text-anchor: middle; }
 .rise .rb-bar { animation: grow-x .9s var(--ease-ios) backwards; transform-box: fill-box; transform-origin: left; animation-delay: calc(var(--j, 0) * 40ms + 150ms); }

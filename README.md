@@ -33,7 +33,7 @@ Sur iPhone : Safari → Partager → « Sur l’écran d’accueil ». L’icôn
   La page NOAA de WSA-Enlil interdit l’intégration (`X-Frame-Options: SAMEORIGIN`) : le visualiseur est refait à partir
   de ses données publiques (`products/animations/enlil.json`, `json/enlil_time_series.json`). Les images (~100 Ko
   chacune, 169 au total) ne se chargent qu’à l’affichage et à la lecture.
-- **Meteors** : prochaine pluie (ou celle en cours), essaims actifs cette nuit, ruban de l’année, liste mois par mois
+- **Meteors** : prochaine pluie (ou celle en cours), essaims actifs cette nuit, frise qui défile sur les mois à venir (date de chaque maximum), liste mois par mois
   avec la Lune et le taux attendu ici ; détail d’un essaim : courbe du radiant, de la Lune et du taux sur la nuit.
 - **Autres** : éclipses de Soleil et de Lune (10 ans, circonstances locales), passages visibles de l’ISS et de
   Tiangong (10 jours), oppositions, plus grandes élongations de Mercure et Vénus, conjonctions de planètes, transits,

@@ -1,15 +1,15 @@
-import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=16';
+import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=20';
 import {
   fetchForecast, cachedForecast, computeHours, hourScore, nightScore, scoreClass, clearSky,
-} from './seeing.js?v=16';
-import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=16';
+} from './seeing.js?v=20';
+import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=20';
 import {
   fetchAurora, fetchSolarWind, fetchOvation, fetchEnlil, thresholds, kpChance, kpLabel, chanceClass, gScale,
-} from './aurora.js?v=16';
-import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=16';
-import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=16';
-import { icon, moonGlyph } from './icons.js?v=16';
-import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=16';
+} from './aurora.js?v=20';
+import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=20';
+import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=20';
+import { icon, moonGlyph } from './icons.js?v=20';
+import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=20';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -367,13 +367,13 @@ function renderAurora(enter = false) {
 
   body.innerHTML = `
     ${hero}
+    <div class="card" id="en-card">${enlilCard()}</div>
     <div class="card">
       ${cardHead('activity', 'Activité géomagnétique', helpBtn('help-kp', 'Comprendre l’indice Kp'))}
       <p class="card-sub">Indice Kp par tranches de 3 h, observé puis prévu${state.au.now ? ` · maintenant ${kpLabel(state.au.now.kp)}` : ''}</p>
       ${kpChart(thr)}
     </div>
     <div class="card" id="sw-card">${solarWindCard()}</div>
-    <div class="card" id="en-card">${enlilCard()}</div>
     <div class="card" id="map-card">
       ${cardHead('globe', 'Ovale auroral')}
       <p class="card-sub" id="map-sub">${state.ov ? ovSub() : 'Prévision NOAA OVATION pour la prochaine heure'}</p>
@@ -532,8 +532,7 @@ function enlilCard() {
     <div class="en-range" style="--now:${(kNow / Math.max(1, frames.length - 1)).toFixed(4)}">
       <input type="range" id="en-range" min="0" max="${frames.length - 1}" value="${state.enFrame}" step="1" aria-label="Heure de la simulation">
     </div>
-    <div id="en-chart">${enlilChart()}</div>
-    <a class="pill-btn tap" href="https://www.swpc.noaa.gov/products/wsa-enlil-solar-wind-prediction" target="_blank" rel="noopener">Page NOAA ${icon('external')}</a>`;
+    <div id="en-chart">${enlilChart()}</div>`;
 }
 
 const enTime = (t) => { const d = new Date(t); return `${cap(fmtWd.format(d))} ${d.getDate()} · ${hh(t)}`; };
@@ -879,7 +878,8 @@ function renderMeteors(enter = false) {
         : '<p class="sheet-p">Aucun essaim notable : comptez 5 à 10 météores sporadiques par heure, un peu plus en fin de nuit.</p>'}
     </div>`;
 
-  // Calendrier : ruban de l'année et liste mois par mois.
+  // Calendrier : frise des mois à venir et liste mois par mois.
+  const keep = $('#rb-scroll')?.scrollLeft;
   const shown = list.filter((e) => state.showMinor || e.s.major || e.s.fireballs);
   let month = '';
   const items = shown.map((e) => {
@@ -899,46 +899,80 @@ function renderMeteors(enter = false) {
     ${hero}
     ${tonight}
     <section class="section">
-      <div class="section-head"><h2>Calendrier</h2><span class="section-sub">${new Date().getFullYear()} ${helpBtn('help-meteors', 'Comment sont calculés les taux')}</span></div>
+      <div class="section-head"><h2>Calendrier</h2><span class="section-sub">${helpBtn('help-meteors', 'Comment sont calculés les taux')}</span></div>
       <div class="card">${ribbon()}</div>
       <div class="showers">${items}</div>
       <label class="toggle-row"><span>Afficher les essaims mineurs</span><input type="checkbox" class="switch" id="opt-minor" ${state.showMinor ? 'checked' : ''}></label>
     </section>
     <footer class="foot">Essaims : liste de travail de l’<a href="https://www.imo.net" target="_blank" rel="noopener">International Meteor Organization</a> ·
       maximum recalculé chaque année depuis la longitude solaire</footer>`;
+  const sc = $('#rb-scroll');
+  sc.scrollLeft = keep ?? Number(sc.dataset.now) - sc.clientWidth * 0.3;
   animateIn(body, enter);
   $('#opt-minor').onchange = (e) => { state.showMinor = e.target.checked; store.set('sc-minor', state.showMinor ? '1' : '0'); renderMeteors(); };
 }
 
+// Frise des principaux essaims, de deux mois en arrière à un an devant, 5 px par jour : elle défile à l'horizontale,
+// noms figés à gauche, nom du mois collé au bord ; chaque maximum porte sa date.
+const RB_DAY = 5;
+
 function ribbon() {
-  const y = new Date().getFullYear();
+  const now = Date.now();
+  const d = new Date(now);
+  const t0 = new Date(d.getFullYear(), d.getMonth() - 2, 1).getTime(), t1 = new Date(d.getFullYear(), d.getMonth() + 13, 1).getTime();
   const majors = SHOWERS.filter((s) => s.major && 90 - Math.abs(state.place.lat - s.dec) > 10);
-  const W = 320, x0 = 78, x1 = W - 4, rowH = 17, top = 18;
-  const H = top + majors.length * rowH + 4;
-  const t0 = new Date(y, 0, 1).getTime(), t1 = new Date(y + 1, 0, 1).getTime();
-  const xt = (t) => x0 + ((t - t0) / (t1 - t0)) * (x1 - x0);
-  let g = `<svg class="ribbon" viewBox="0 0 ${W} ${H}" role="img" aria-label="Activité des principaux essaims en ${y}">`;
-  for (let m = 0; m < 12; m++) {
-    const a = new Date(y, m, 1).getTime(), b = new Date(y, m + 1, 1).getTime();
-    g += `<line x1="${xt(a).toFixed(1)}" x2="${xt(a).toFixed(1)}" y1="${top - 4}" y2="${H}" class="rb-grid"/>
-      <text x="${xt((a + b) / 2).toFixed(1)}" y="${top - 7}" class="rb-month">${'JFMAMJJASOND'[m]}</text>`;
+  const rowH = 26, top = 38;
+  const H = top + majors.length * rowH + 2;
+  const xt = (t) => ((t - t0) / DAY) * RB_DAY;
+  const W = Math.ceil(xt(t1)) + 16;
+  let g = `<svg class="ribbon" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Activité des principaux essaims, de ${fmtMonth.format(new Date(t0))} à ${fmtMonth.format(new Date(t1 - DAY))}">`;
+  const nx = xt(now);
+  let months = '';
+  for (let m = new Date(t0); m.getTime() < t1; m.setMonth(m.getMonth() + 1)) {
+    const a = m.getTime(), x = xt(a);
+    const w = xt(new Date(m.getFullYear(), m.getMonth() + 1, 1).getTime()) - x;
+    months += `<span style="width:${w.toFixed(1)}px"><b>${fmtMonth.format(m)}</b></span>`;
+    g += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="2" y2="${H}" class="rb-grid"/>`;
+    for (const day of [5, 10, 15, 20, 25]) {
+      const t = new Date(m.getFullYear(), m.getMonth(), day, 12).getTime(), xd = xt(t);
+      g += `<line x1="${xd.toFixed(1)}" x2="${xd.toFixed(1)}" y1="${top - 2}" y2="${H}" class="rb-grid minor"/>`;
+      if (Math.abs(xd - nx) > 16) g += `<text x="${xd.toFixed(1)}" y="30" class="rb-dnum">${day}</text>`;
+    }
   }
   const byCode = new Map((state.meteors ?? []).map((e) => [e.s.code, e]));
+  const y0 = new Date(t0).getFullYear(), y1 = new Date(t1).getFullYear();
   majors.forEach((s, j) => {
-    const yy = top + j * rowH;
-    const { peak, spans } = yearSpans(s, y);
+    const cy = top + j * rowH + 15;
     const e = byCode.get(s.code);
-    const cls = e && new Date(e.peak).getFullYear() === y ? meteorClass(e.score).key : 'maybe';
-    g += `<text x="0" y="${yy + 11.5}" class="rb-name">${s.name}</text>`;
+    // Morceaux d'activité de chaque année, recollés au Nouvel An, coupés aux bords de la frise.
+    const spans = [];
+    for (let y = y0 - 1; y <= y1; y++) {
+      for (const [a, b] of yearSpans(s, y).spans) {
+        const last = spans.at(-1);
+        if (last && last[1] === a) last[1] = b; else spans.push([a, b]);
+      }
+    }
+    const peaks = [];
+    for (let y = y0; y <= y1; y++) peaks.push(yearSpans(s, y).peak);
     const hgt = Math.max(4, Math.min(10, 3 + Math.log10(s.zhr) * 3.3));
     for (const [a, b] of spans) {
-      g += `<rect class="rb-bar ${cls}" style="--j:${j}" x="${xt(a).toFixed(1)}" y="${(yy + 8 - hgt / 2).toFixed(1)}" width="${Math.max(2, xt(b) - xt(a)).toFixed(1)}" height="${hgt.toFixed(1)}" rx="${(hgt / 2).toFixed(1)}"/>`;
+      if (b < t0 || a > t1) continue;
+      const pk = peaks.find((p) => p >= a && p <= b);
+      // Couleur de la prévision pour l'occurrence évaluée ; les autres en neutre, les passées estompées.
+      const cls = b < now ? 'maybe past' : e && pk != null && Math.abs(pk - e.peak) < 10 * DAY ? meteorClass(e.score).key : 'maybe';
+      const xa = xt(Math.max(a, t0)), xb = xt(Math.min(b, t1));
+      g += `<g class="${cls}"><rect class="rb-bar" style="--j:${j}" x="${xa.toFixed(1)}" y="${(cy - hgt / 2).toFixed(1)}" width="${Math.max(2, xb - xa).toFixed(1)}" height="${hgt.toFixed(1)}" rx="${(hgt / 2).toFixed(1)}"/>`;
+      if (pk != null && pk >= t0 && pk <= t1) {
+        const xp = xt(pk).toFixed(1), pd = new Date(pk);
+        g += `<circle class="rb-peak" cx="${xp}" cy="${cy}" r="3.2"/><text x="${xp}" y="${cy - 8}" class="rb-date">${pd.getDate()} ${fmtMonthShort.format(pd).replace('.', '')}</text>`;
+      }
+      g += '</g>';
     }
-    g += `<circle class="rb-peak ${cls}" cx="${xt(peak).toFixed(1)}" cy="${yy + 8}" r="3.2"/>`;
   });
-  const nx = xt(Date.now());
-  g += `<line x1="${nx.toFixed(1)}" x2="${nx.toFixed(1)}" y1="${top - 2}" y2="${H}" class="rb-now"/>`;
-  return `${g}</svg>`;
+  g += `<line x1="${nx.toFixed(1)}" x2="${nx.toFixed(1)}" y1="${top - 4}" y2="${H}" class="rb-now"/><text x="${nx.toFixed(1)}" y="30" class="rb-now-lbl">auj.</text></svg>`;
+  const names = majors.map((s) => `<span style="height:${rowH}px">${s.name.replace(' du Sud', ' S.')}</span>`).join('');
+  return `<div class="rb"><div class="rb-names" style="padding-top:${top}px">${names}</div>
+    <div class="rb-scroll" id="rb-scroll" data-now="${nx.toFixed(0)}"><div class="rb-track"><div class="rb-months" aria-hidden="true">${months}</div>${g}</div></div></div>`;
 }
 
 function openShower(code) {
