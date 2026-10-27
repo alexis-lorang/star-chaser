@@ -1,15 +1,15 @@
-import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=20';
+import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=21';
 import {
   fetchForecast, cachedForecast, computeHours, hourScore, nightScore, scoreClass, clearSky,
-} from './seeing.js?v=20';
-import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=20';
+} from './seeing.js?v=21';
+import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=21';
 import {
   fetchAurora, fetchSolarWind, fetchOvation, fetchEnlil, thresholds, kpChance, kpLabel, chanceClass, gScale,
-} from './aurora.js?v=20';
-import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=20';
-import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=20';
-import { icon, moonGlyph } from './icons.js?v=20';
-import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=20';
+} from './aurora.js?v=21';
+import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=21';
+import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=21';
+import { icon, moonGlyph } from './icons.js?v=21';
+import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=21';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
