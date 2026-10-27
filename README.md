@@ -28,7 +28,7 @@ Sur iPhone : Safari → Partager → « Sur l’écran d’accueil ». L’icôn
   est encadré en doré.
 - **Aurora** : chance d’aurore sur les 3 prochaines nuits (Kp prévu × nuages × Lune), graphique Kp observé / prévu
   avec les seuils du lieu, vent solaire en direct (vitesse, densité, Bz, Bt), prévision du vent solaire WSA-Enlil
-  (animation NOAA recadrée sur la vue du dessus, vitesse ou densité, lecture et curseur, courbes au point Terre,
+  (animation NOAA recadrée sur la vue du dessus, densité ou vitesse, lecture et curseur, courbe au point Terre,
   arrivée d’une CME), ovale auroral OVATION sur une carte, tendance à 27 jours, seuils Kp pour le lieu.
   La page NOAA de WSA-Enlil interdit l’intégration (`X-Frame-Options: SAMEORIGIN`) : le visualiseur est refait à partir
   de ses données publiques (`products/animations/enlil.json`, `json/enlil_time_series.json`). Les images (~100 Ko

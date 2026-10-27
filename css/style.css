@@ -603,10 +603,11 @@ h1[tabindex]:focus { outline: none; }
 /* Prévision WSA-Enlil : animation NOAA recadrée sur la vue du dessus et de profil, lecture, curseur, courbes. */
 .en-views { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
 .en-views .fchip { height: 32px; padding: 0 14px; font-size: 13px; }
-.en-frame { position: relative; overflow: hidden; margin: 0 -20px; aspect-ratio: 490 / 250; background: #000; }
-.en-frame img { position: absolute; left: 0; top: calc(-100% * var(--y) / 250); width: calc(100% * 960 / 490); max-width: none; height: auto; }
-.en-frame.density { --y: 62; }
-.en-frame.speed { --y: 325; }
+/* Fenêtre de 490 × 266 px sur l'image NOAA (960 × 600) : le cercle (250 px de haut) et 8 px de marge autour. */
+.en-frame { position: relative; overflow: hidden; margin: 0 -20px; aspect-ratio: 490 / 266; background: #000; }
+.en-frame img { position: absolute; left: 0; top: calc(-100% * var(--y) / 266); width: calc(100% * 960 / 490); max-width: none; height: auto; }
+.en-frame.density { --y: 51; }
+.en-frame.speed { --y: 315; }
 .en-keys { display: flex; justify-content: center; gap: var(--sp-4); margin-top: 10px; font-size: 12px; color: var(--text-2); }
 .en-keys span { display: inline-flex; align-items: center; gap: 6px; }
 .en-keys i { width: 9px; height: 9px; border-radius: 50%; background: var(--k); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .35); }

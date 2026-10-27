@@ -1,15 +1,15 @@
-import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=14';
+import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=15';
 import {
   fetchForecast, cachedForecast, computeHours, hourScore, nightScore, scoreClass, clearSky,
-} from './seeing.js?v=14';
-import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=14';
+} from './seeing.js?v=15';
+import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=15';
 import {
   fetchAurora, fetchSolarWind, fetchOvation, fetchEnlil, thresholds, kpChance, kpLabel, chanceClass, gScale,
-} from './aurora.js?v=14';
-import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=14';
-import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=14';
-import { icon, moonGlyph } from './icons.js?v=14';
-import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=14';
+} from './aurora.js?v=15';
+import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=15';
+import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=15';
+import { icon, moonGlyph } from './icons.js?v=15';
+import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=15';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -47,7 +47,7 @@ const state = {
   evFilter: 'all',
   showMinor: store.get('sc-minor', '0') === '1',
   fc: null, hours: null, nights: null, loading: false, error: null,
-  au: null, auError: null, sw: null, swError: null, ov: null, ovError: null, en: null, enError: null, enFrame: null, enView: 'speed',
+  au: null, auError: null, sw: null, swError: null, ov: null, ovError: null, en: null, enError: null, enFrame: null, enView: 'density',
   meteors: null, events: null, passes: null, passError: null,
   rendered: {},
 };
@@ -494,7 +494,11 @@ async function loadSolarWind() {
 // Prévision WSA-Enlil (NOAA) : animation recadrée sur la vue du dessus, lecture, curseur, courbes au point Terre.
 // Les images (~100 Ko chacune) ne se chargent qu'à l'affichage ou à la lecture ; le préchargement passe par le cache
 // HTTP du navigateur, sans garder les images décodées en mémoire.
-const EN_VIEWS = { speed: 'Vitesse', density: 'Densité' };
+// Grandeur affichée : recadrage de l'image (CSS) et courbe au point Terre.
+const EN_VIEWS = {
+  density: { label: 'Densité', cls: 'de', step: 5, minHi: 10, key: 'Densité à la Terre (p/cm³)', aria: 'Densité' },
+  speed: { label: 'Vitesse', cls: 'sp', step: 100, minHi: 600, key: 'Vitesse à la Terre (km/s)', aria: 'Vitesse' },
+};
 const en = { imgs: new Map(), want: -1, playing: false, timer: null };
 const EN_X0 = 30, EN_X1 = 316; // zone tracée du graphique (viewBox de 320 de large)
 
@@ -515,7 +519,7 @@ function enlilCard() {
   const kNow = enNowFrame();
   return `${head}
     <p class="card-sub">${enlilSummary()}</p>
-    <div class="en-views" role="group" aria-label="Grandeur affichée">${Object.entries(EN_VIEWS).map(([v, l]) => `<button class="fchip" data-action="enlil-view" data-view="${v}" aria-pressed="${state.enView === v}">${l}</button>`).join('')}</div>
+    <div class="en-views" role="group" aria-label="Grandeur affichée">${Object.entries(EN_VIEWS).map(([v, o]) => `<button class="fchip" data-action="enlil-view" data-view="${v}" aria-pressed="${state.enView === v}">${o.label}</button>`).join('')}</div>
     <div class="en-frame ${state.enView}">
       <img id="en-img" src="${f.url}" alt="Simulation WSA-Enlil du vent solaire, vue du dessus et de profil" decoding="async">
     </div>
@@ -528,7 +532,7 @@ function enlilCard() {
     <div class="en-range" style="--now:${(kNow / Math.max(1, frames.length - 1)).toFixed(4)}">
       <input type="range" id="en-range" min="0" max="${frames.length - 1}" value="${state.enFrame}" step="1" aria-label="Heure de la simulation">
     </div>
-    ${enlilChart()}
+    <div id="en-chart">${enlilChart()}</div>
     <a class="pill-btn tap" href="https://www.swpc.noaa.gov/products/wsa-enlil-solar-wind-prediction" target="_blank" rel="noopener">Page NOAA ${icon('external')}</a>`;
 }
 
@@ -556,45 +560,40 @@ function enlilSummary() {
   return `Vent calme prévu, au plus ${int(peak.speed)} km/s, sans CME d’ici ${fmtDM.format(new Date(next.at(-1).t))}.`;
 }
 
-// Vitesse et densité prévues au point Terre sur toute la simulation, curseur sur l'image affichée.
+// Vitesse ou densité prévue au point Terre sur toute la simulation, selon la vue, curseur sur l'image affichée.
 function enlilChart() {
   const { frames, earth } = state.en;
+  const view = state.enView, o = EN_VIEWS[view];
   const t0 = frames[0].t, t1 = frames.at(-1).t;
   const rows = earth.filter((r) => r.t >= t0 && r.t <= t1);
-  if (rows.length < 2) return '';
-  const W = 320, H = 166, x0 = EN_X0, x1 = EN_X1;
+  const v = rows.filter((r) => r[view] != null);
+  if (v.length < 2) return '';
+  const W = 320, H = 120, x0 = EN_X0, x1 = EN_X1, top = 22, bottom = 108;
   const xt = (t) => x0 + ((t - t0) / (t1 - t0)) * (x1 - x0);
-  const panel = (key, top, bottom, step, minHi) => {
-    const v = rows.filter((r) => r[key] != null);
-    const hi = Math.max(minHi, Math.ceil(Math.max(...v.map((r) => r[key])) / step) * step);
-    const lo = key === 'speed' ? Math.min(300, Math.floor(Math.min(...v.map((r) => r[key])) / step) * step) : 0;
-    const y = (x) => bottom - ((x - lo) / (hi - lo)) * (bottom - top);
-    const d = v.map((r, i) => `${i ? 'L' : 'M'}${xt(r.t).toFixed(1)} ${y(r[key]).toFixed(1)}`).join(' ');
-    let g = `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${bottom - top}" rx="6" class="kp-bg"/>`;
-    for (let k = lo + step; k < hi; k += step) g += `<line x1="${x0}" x2="${x1}" y1="${y(k).toFixed(1)}" y2="${y(k).toFixed(1)}" class="kp-grid"/>`;
-    g += `<text x="${x0 - 5}" y="${(y(hi) + 8).toFixed(1)}" class="kp-lbl end">${hi}</text><text x="${x0 - 5}" y="${(y(lo) - 1).toFixed(1)}" class="kp-lbl end">${lo}</text>`;
-    return { g, d: `${d}`, area: `${d} L${xt(v.at(-1).t).toFixed(1)} ${bottom} L${xt(v[0].t).toFixed(1)} ${bottom} Z` };
-  };
-  const sp = panel('speed', 22, 92, 100, 600), de = panel('density', 108, 150, 5, 10);
-  let g = `<svg class="kp en-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Vitesse et densité du vent solaire prévues au point Terre">`;
+  const hi = Math.max(o.minHi, Math.ceil(Math.max(...v.map((r) => r[view])) / o.step) * o.step);
+  const lo = view === 'speed' ? Math.min(300, Math.floor(Math.min(...v.map((r) => r[view])) / o.step) * o.step) : 0;
+  const y = (x) => bottom - ((x - lo) / (hi - lo)) * (bottom - top);
+  const d = v.map((r, i) => `${i ? 'L' : 'M'}${xt(r.t).toFixed(1)} ${y(r[view]).toFixed(1)}`).join(' ');
+  let g = `<svg class="kp en-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${o.aria} du vent solaire prévue au point Terre">`;
   // CME au point Terre.
   const cloudy = enCloudy();
-  for (const r of rows) if (cloudy(r)) g += `<rect x="${xt(r.t - 15 * 60e3).toFixed(1)}" y="22" width="${(xt(r.t + 15 * 60e3) - xt(r.t - 15 * 60e3) + 0.3).toFixed(1)}" height="128" class="en-cme"/>`;
-  g += sp.g + de.g;
-  g += `<path d="${sp.area}" class="en-area sp"/><path d="${sp.d}" class="en-line sp"/>`;
-  g += `<path d="${de.area}" class="en-area de"/><path d="${de.d}" class="en-line de"/>`;
-  for (let d = new Date(t0); d.getTime() <= t1; d.setDate(d.getDate() + 1)) {
-    const m = new Date(d); m.setHours(0, 0, 0, 0);
+  for (const r of rows) if (cloudy(r)) g += `<rect x="${xt(r.t - 15 * 60e3).toFixed(1)}" y="${top}" width="${(xt(r.t + 15 * 60e3) - xt(r.t - 15 * 60e3) + 0.3).toFixed(1)}" height="${bottom - top}" class="en-cme"/>`;
+  g += `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${bottom - top}" rx="6" class="kp-bg"/>`;
+  for (let k = lo + o.step; k < hi; k += o.step) g += `<line x1="${x0}" x2="${x1}" y1="${y(k).toFixed(1)}" y2="${y(k).toFixed(1)}" class="kp-grid"/>`;
+  g += `<text x="${x0 - 5}" y="${(y(hi) + 8).toFixed(1)}" class="kp-lbl end">${hi}</text><text x="${x0 - 5}" y="${(y(lo) - 1).toFixed(1)}" class="kp-lbl end">${lo}</text>`;
+  g += `<path d="${d} L${xt(v.at(-1).t).toFixed(1)} ${bottom} L${xt(v[0].t).toFixed(1)} ${bottom} Z" class="en-area ${o.cls}"/><path d="${d}" class="en-line ${o.cls}"/>`;
+  for (let dd = new Date(t0); dd.getTime() <= t1; dd.setDate(dd.getDate() + 1)) {
+    const m = new Date(dd); m.setHours(0, 0, 0, 0);
     const mt = m.getTime();
-    if (mt > t0 && mt < t1) g += `<line x1="${xt(mt).toFixed(1)}" x2="${xt(mt).toFixed(1)}" y1="22" y2="154" class="kp-axis"/>`;
+    if (mt > t0 && mt < t1) g += `<line x1="${xt(mt).toFixed(1)}" x2="${xt(mt).toFixed(1)}" y1="${top}" y2="${bottom + 4}" class="kp-axis"/>`;
     const noon = mt + 12 * H1;
     if (noon > t0 + 3 * H1 && noon < t1 - 3 * H1) g += `<text x="${xt(noon).toFixed(1)}" y="12" class="en-day">${fmtWd.format(m).replace('.', '')} ${m.getDate()}</text>`;
   }
   const now = Date.now();
-  if (now > t0 && now < t1) g += `<line x1="${xt(now).toFixed(1)}" x2="${xt(now).toFixed(1)}" y1="22" y2="150" class="kp-now"/>`;
+  if (now > t0 && now < t1) g += `<line x1="${xt(now).toFixed(1)}" x2="${xt(now).toFixed(1)}" y1="${top}" y2="${bottom}" class="kp-now"/>`;
   const cx = xt(frames[state.enFrame].t).toFixed(1);
-  g += `<line id="en-cur" x1="${cx}" x2="${cx}" y1="18" y2="154" class="en-cur"/></svg>`;
-  return `${g}<div class="kp-keys"><span><i class="k-sp"></i>Vitesse à la Terre (km/s)</span><span><i class="k-de"></i>Densité (p/cm³)</span>
+  g += `<line id="en-cur" x1="${cx}" x2="${cx}" y1="${top - 4}" y2="${bottom + 4}" class="en-cur"/></svg>`;
+  return `${g}<div class="kp-keys"><span><i class="k-${o.cls}"></i>${o.key}</span>
     ${rows.some(cloudy) ? '<span><i class="k-cme"></i>Matière de la CME</span>' : ''}<span><i class="k-cur"></i>Image affichée</span></div>`;
 }
 
@@ -664,6 +663,8 @@ function setEnView(v) {
   state.enView = v;
   const fr = $('#en-card .en-frame');
   if (fr) fr.className = `en-frame ${v}`;
+  const ch = $('#en-chart');
+  if (ch && state.en) ch.innerHTML = enlilChart();
   $$('#en-card [data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
 }
 
@@ -694,7 +695,7 @@ const ENLIL_HELP = `<div class="help-body">
   <p><b>Image</b> : à gauche, le plan des planètes vu de dessus, Soleil au centre, Terre en vert, sonde STEREO-A en
     rouge ; à droite, la même chose vue de profil vers la Terre. Les spirales sont des courants de vent rapide ou dense
     qui tournent avec le Soleil ; une CME apparaît comme une bulle qui s’éloigne du Soleil.</p>
-  <p><b>Courbes</b> : vitesse et densité prévues au point Terre. Au-delà de 500 km/s, ou à l’arrivée d’une CME, le Kp
+  <p><b>Courbe</b> : densité ou vitesse prévue au point Terre, selon la vue choisie. Au-delà de 500 km/s, ou à l’arrivée d’une CME, le Kp
     peut monter, surtout si le champ magnétique s’oriente au sud (Bz négatif), ce que le modèle ne prévoit pas.</p>
   <p>L’heure d’arrivée d’une CME est incertaine, souvent à 6 à 8 heures près. L’animation complète pèse environ
     16 Mo : les images ne se chargent qu’à la lecture.</p>
