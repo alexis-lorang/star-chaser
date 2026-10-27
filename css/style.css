@@ -516,6 +516,9 @@ h1[tabindex]:focus { outline: none; }
 .fchip:active { transform: scale(.94); }
 .fchip .ic { width: 15px; height: 15px; }
 .fchip[aria-pressed="true"] { background: var(--glass-sel); color: var(--on-glass-sel); }
+/* Thème clair : le verre y est bleu nuit, il passerait pour la puce choisie ; on inverse, puce choisie pleine. */
+:root[data-theme="light"] .fchip { background: rgba(255, 255, 255, .72); border-color: rgba(40, 52, 120, .16); color: var(--text-2); }
+:root[data-theme="light"] .fchip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: #fff; }
 .fchip i { font-style: normal; font-weight: 500; opacity: .7; }
 
 /* ---------- Seeing : nuages heure par heure ---------- */

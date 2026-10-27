@@ -1,5 +1,5 @@
 // Prévisions Open-Meteo + seeing (turbulence par couches), transparence et indice d'observation.
-import { MODELS } from './config.js?v=15';
+import { MODELS } from './config.js?v=16';
 
 const LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250, 200, 150, 100];
 const SURFACE = ['cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high', 'cloud_cover', 'temperature_2m',
