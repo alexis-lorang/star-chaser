@@ -1,15 +1,15 @@
-import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=21';
+import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=22';
 import {
   fetchForecast, cachedForecast, computeHours, hourScore, nightScore, scoreClass, clearSky,
-} from './seeing.js?v=21';
-import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=21';
+} from './seeing.js?v=22';
+import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=22';
 import {
   fetchAurora, fetchSolarWind, fetchOvation, fetchEnlil, thresholds, kpChance, kpLabel, chanceClass, gScale,
-} from './aurora.js?v=21';
-import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=21';
-import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=21';
-import { icon, moonGlyph } from './icons.js?v=21';
-import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=21';
+} from './aurora.js?v=22';
+import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=22';
+import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=22';
+import { icon, moonGlyph } from './icons.js?v=22';
+import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=22';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -204,14 +204,14 @@ function renderSeeing(enter = false) {
   const hours = cloudHours(nights);
   const byT = new Map((state.hours ?? []).map((h) => [h.t, h]));
   const step = hours.length > 9 ? 2 : 1;
-  const axis = hours.map((H) => `<span>${H % step === 0 ? `${H % 24} h` : ''}</span>`).join('');
+  // Règle des heures répétée au-dessus de chaque nuit : heure paire en clair, point pour l'heure impaire.
+  const axis = `<div class="cn-axis" style="--n:${hours.length}" aria-hidden="true">${hours.map((H) => (H % step === 0 ? `<span>${H % 24} h</span>` : '<span class="dot">·</span>')).join('')}</div>`;
   body.innerHTML = `
     ${hero}
     <section class="section">
       <div class="section-head"><h2>Nuages</h2><span class="section-sub">${MODELS[state.model].label} ${helpBtn('help-seeing', 'Comment lire les prévisions')}</span></div>
       <div class="card clouds">
-        <div class="cn-axis" style="--n:${hours.length}" aria-hidden="true">${axis}</div>
-        ${nights.map((n) => cloudRow(n, hours, byT, n === top)).join('')}
+        ${nights.map((n) => cloudRow(n, hours, byT, n === top, axis)).join('')}
         <div class="cn-legend">
           <div><div class="cl-scale">${[0, 25, 50, 75, 100].map((v) => `<i style="--cl:${cloudColor(v)}"></i>`).join('')}</div>
             <div class="cl-lbl"><span>Dégagé · 0 %</span><span>Couvert · 100 %</span></div></div>
@@ -259,8 +259,8 @@ function cloudHours(nights) {
   return Array.from({ length: Math.max(1, b - a + 1) }, (_, i) => a + i);
 }
 
-// Une nuit : nom, indice, puis la couverture totale heure par heure ; le meilleur créneau est encadré.
-function cloudRow(n, hours, byT, isTop) {
+// Une nuit : nom, indice, règle des heures, puis la couverture totale heure par heure ; le meilleur créneau est encadré.
+function cloudRow(n, hours, byT, isTop, axis) {
   const day = new Date(n.noon);
   const now = Date.now();
   const ts = hours.map((H) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), H).getTime());
@@ -281,6 +281,7 @@ function cloudRow(n, hours, byT, isTop) {
       <b>${nightLabel(n)}</b><span>${fmtDM.format(day)}</span>${isTop ? icon('star', 'cn-star') : ''}
       <span class="chip sm ${c.key}">${b ? `${b.score} · ${c.label}` : c.label}</span>
     </div>
+    ${axis}
     <div class="cn-strip" style="--n:${hours.length}" role="img" aria-label="${nightLabel(n)} : ${cloudSummary(n).toLowerCase()}">${cells}${win}</div>
   </div>`;
 }

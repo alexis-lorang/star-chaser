@@ -523,11 +523,12 @@ h1[tabindex]:focus { outline: none; }
 
 /* ---------- Seeing : nuages heure par heure ---------- */
 
-.clouds { display: flex; flex-direction: column; gap: 14px; padding: 16px 12px; }
+.clouds { display: flex; flex-direction: column; gap: 18px; padding: 16px 12px; }
 .cn-axis, .cn-strip { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: var(--g); --g: 3px; }
-.cn-axis span { display: flex; justify-content: center; font-size: 11px; font-weight: 500; white-space: nowrap; color: var(--ch-lbl); font-variant-numeric: tabular-nums; }
-.cn { display: flex; flex-direction: column; gap: 8px; }
-.cn-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; padding: 0 4px; }
+.cn-axis span { display: flex; justify-content: center; font-size: 10.5px; font-weight: 500; line-height: 13px; white-space: nowrap; color: var(--ch-lbl); font-variant-numeric: tabular-nums; }
+.cn-axis .dot { opacity: .6; }
+.cn { display: flex; flex-direction: column; gap: 5px; }
+.cn-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; padding: 0 4px; margin-bottom: 3px; }
 .cn-head b { font-size: 15px; font-weight: 600; white-space: nowrap; }
 .cn-head > span:not(.chip) { font-size: 13px; color: var(--text-2); white-space: nowrap; }
 .cn-head .chip { margin-left: auto; align-self: center; }
