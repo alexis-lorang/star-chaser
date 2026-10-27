@@ -1,15 +1,15 @@
-import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=11';
+import { PLACES, DEFAULT_PLACE, MODELS, SKIES } from './config.js?v=14';
 import {
   fetchForecast, cachedForecast, computeHours, hourScore, nightScore, scoreClass, clearSky,
-} from './seeing.js?v=11';
-import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=11';
+} from './seeing.js?v=14';
+import { observer, upcomingNights, skyAt, geomagLat } from './astro.js?v=14';
 import {
-  fetchAurora, fetchSolarWind, fetchOvation, thresholds, kpChance, kpLabel, chanceClass, gScale,
-} from './aurora.js?v=11';
-import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=11';
-import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=11';
-import { icon, moonGlyph } from './icons.js?v=11';
-import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=11';
+  fetchAurora, fetchSolarWind, fetchOvation, fetchEnlil, thresholds, kpChance, kpLabel, chanceClass, gScale,
+} from './aurora.js?v=14';
+import { evaluateAll, activeTonight, yearSpans, SHOWERS, meteorClass } from './meteors.js?v=14';
+import { solarEclipses, lunarEclipses, planetEvents, moonEvents, fetchTLEs, satellitePasses, compass } from './events.js?v=14';
+import { icon, moonGlyph } from './icons.js?v=14';
+import { nightScene, auroraScene, meteorScene, eventScene } from './scene.js?v=14';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -47,7 +47,7 @@ const state = {
   evFilter: 'all',
   showMinor: store.get('sc-minor', '0') === '1',
   fc: null, hours: null, nights: null, loading: false, error: null,
-  au: null, auError: null, sw: null, swError: null, ov: null, ovError: null,
+  au: null, auError: null, sw: null, swError: null, ov: null, ovError: null, en: null, enError: null, enFrame: null, enView: 'speed',
   meteors: null, events: null, passes: null, passError: null,
   rendered: {},
 };
@@ -373,6 +373,7 @@ function renderAurora(enter = false) {
       ${kpChart(thr)}
     </div>
     <div class="card" id="sw-card">${solarWindCard()}</div>
+    <div class="card" id="en-card">${enlilCard()}</div>
     <div class="card" id="map-card">
       ${cardHead('globe', 'Ovale auroral')}
       <p class="card-sub" id="map-sub">${state.ov ? ovSub() : 'Prévision NOAA OVATION pour la prochaine heure'}</p>
@@ -387,6 +388,7 @@ function renderAurora(enter = false) {
   if (state.ov) drawMap();
   else if (!state.ovError) loadOvation();
   if (!state.sw && !state.swError) loadSolarWind();
+  if (!state.en && !state.enError) loadEnlil();
 }
 
 function kpChart(thr) {
@@ -488,6 +490,215 @@ async function loadSolarWind() {
   const card = $('#sw-card');
   if (card) { card.innerHTML = solarWindCard(); replay([card], 'swap'); }
 }
+
+// Prévision WSA-Enlil (NOAA) : animation recadrée sur la vue du dessus, lecture, curseur, courbes au point Terre.
+// Les images (~100 Ko chacune) ne se chargent qu'à l'affichage ou à la lecture ; le préchargement passe par le cache
+// HTTP du navigateur, sans garder les images décodées en mémoire.
+const EN_VIEWS = { speed: 'Vitesse', density: 'Densité' };
+const en = { imgs: new Map(), want: -1, playing: false, timer: null };
+const EN_X0 = 30, EN_X1 = 316; // zone tracée du graphique (viewBox de 320 de large)
+
+const enNowFrame = () => {
+  const now = Date.now();
+  const k = state.en.frames.findLastIndex((f) => f.t <= now);
+  return Math.max(0, k);
+};
+
+function enlilCard() {
+  const head = cardHead('sun', 'Vent solaire prévu', helpBtn('help-enlil', 'Comprendre la prévision WSA-Enlil'));
+  if (!state.en) {
+    return `${head}<p class="sw-note">${state.enError ? `Prévision indisponible (${state.enError}).` : `${spinner('inline')}Chargement…`}</p>`;
+  }
+  const { frames } = state.en;
+  state.enFrame ??= enNowFrame();
+  const f = frames[state.enFrame];
+  const kNow = enNowFrame();
+  return `${head}
+    <p class="card-sub">${enlilSummary()}</p>
+    <div class="en-views" role="group" aria-label="Grandeur affichée">${Object.entries(EN_VIEWS).map(([v, l]) => `<button class="fchip" data-action="enlil-view" data-view="${v}" aria-pressed="${state.enView === v}">${l}</button>`).join('')}</div>
+    <div class="en-frame ${state.enView}">
+      <img id="en-img" src="${f.url}" alt="Simulation WSA-Enlil du vent solaire, vue du dessus et de profil" decoding="async">
+    </div>
+    <div class="en-keys"><span><i style="--k:#ffe14d"></i>Soleil</span><span><i style="--k:#5ee06a"></i>Terre</span><span><i style="--k:#ff8a8a"></i>STEREO-A</span></div>
+    <div class="en-bar">
+      <button class="en-play tap" data-action="enlil-play" aria-label="${en.playing ? 'Pause' : 'Lecture'}">${icon(en.playing ? 'pause' : 'play')}</button>
+      <div class="en-time"><b id="en-t">${enTime(f.t)}</b><small id="en-k">${enKind(f.t)}</small></div>
+      <button class="en-now" data-action="enlil-now">Maintenant</button>
+    </div>
+    <div class="en-range" style="--now:${(kNow / Math.max(1, frames.length - 1)).toFixed(4)}">
+      <input type="range" id="en-range" min="0" max="${frames.length - 1}" value="${state.enFrame}" step="1" aria-label="Heure de la simulation">
+    </div>
+    ${enlilChart()}
+    <a class="pill-btn tap" href="https://www.swpc.noaa.gov/products/wsa-enlil-solar-wind-prediction" target="_blank" rel="noopener">Page NOAA ${icon('external')}</a>`;
+}
+
+const enTime = (t) => { const d = new Date(t); return `${cap(fmtWd.format(d))} ${d.getDate()} · ${hh(t)}`; };
+const enKind = (t) => { const d = Date.now() - t; return d < 0 ? 'Prévision' : d < H1 ? 'Maintenant' : 'Passé'; };
+
+// Matière d'une éjection de masse coronale au point Terre (champ « cloud », absent en mode ambiant).
+function enCloudy() {
+  const pts = state.en.earth.filter((r) => r.cloud > 0);
+  if (!pts.length) return () => false;
+  const lim = 0.2 * Math.max(...pts.map((r) => r.cloud));
+  return (r) => r.cloud >= lim;
+}
+
+// « Vent rapide prévu : jusqu'à 560 km/s jeu. 29 oct. vers 2 h », ou arrivée d'une CME.
+function enlilSummary() {
+  const now = Date.now();
+  const next = state.en.earth.filter((r) => r.t > now && r.speed != null);
+  if (!next.length) return 'Simulation NOAA du vent solaire entre le Soleil et la Terre.';
+  const cme = next.find(enCloudy());
+  const peak = next.reduce((m, r) => (r.speed > m.speed ? r : m));
+  const when = (t) => `${fmtDay.format(new Date(t))} vers ${hh(t)}`;
+  if (cme) return `Arrivée d’une CME prévue ${when(cme.t)}, vent jusqu’à ${int(peak.speed)} km/s.`;
+  if (peak.speed >= 500) return `Vent rapide prévu : jusqu’à ${int(peak.speed)} km/s ${when(peak.t)}.`;
+  return `Vent calme prévu, au plus ${int(peak.speed)} km/s, sans CME d’ici ${fmtDM.format(new Date(next.at(-1).t))}.`;
+}
+
+// Vitesse et densité prévues au point Terre sur toute la simulation, curseur sur l'image affichée.
+function enlilChart() {
+  const { frames, earth } = state.en;
+  const t0 = frames[0].t, t1 = frames.at(-1).t;
+  const rows = earth.filter((r) => r.t >= t0 && r.t <= t1);
+  if (rows.length < 2) return '';
+  const W = 320, H = 166, x0 = EN_X0, x1 = EN_X1;
+  const xt = (t) => x0 + ((t - t0) / (t1 - t0)) * (x1 - x0);
+  const panel = (key, top, bottom, step, minHi) => {
+    const v = rows.filter((r) => r[key] != null);
+    const hi = Math.max(minHi, Math.ceil(Math.max(...v.map((r) => r[key])) / step) * step);
+    const lo = key === 'speed' ? Math.min(300, Math.floor(Math.min(...v.map((r) => r[key])) / step) * step) : 0;
+    const y = (x) => bottom - ((x - lo) / (hi - lo)) * (bottom - top);
+    const d = v.map((r, i) => `${i ? 'L' : 'M'}${xt(r.t).toFixed(1)} ${y(r[key]).toFixed(1)}`).join(' ');
+    let g = `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${bottom - top}" rx="6" class="kp-bg"/>`;
+    for (let k = lo + step; k < hi; k += step) g += `<line x1="${x0}" x2="${x1}" y1="${y(k).toFixed(1)}" y2="${y(k).toFixed(1)}" class="kp-grid"/>`;
+    g += `<text x="${x0 - 5}" y="${(y(hi) + 8).toFixed(1)}" class="kp-lbl end">${hi}</text><text x="${x0 - 5}" y="${(y(lo) - 1).toFixed(1)}" class="kp-lbl end">${lo}</text>`;
+    return { g, d: `${d}`, area: `${d} L${xt(v.at(-1).t).toFixed(1)} ${bottom} L${xt(v[0].t).toFixed(1)} ${bottom} Z` };
+  };
+  const sp = panel('speed', 22, 92, 100, 600), de = panel('density', 108, 150, 5, 10);
+  let g = `<svg class="kp en-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Vitesse et densité du vent solaire prévues au point Terre">`;
+  // CME au point Terre.
+  const cloudy = enCloudy();
+  for (const r of rows) if (cloudy(r)) g += `<rect x="${xt(r.t - 15 * 60e3).toFixed(1)}" y="22" width="${(xt(r.t + 15 * 60e3) - xt(r.t - 15 * 60e3) + 0.3).toFixed(1)}" height="128" class="en-cme"/>`;
+  g += sp.g + de.g;
+  g += `<path d="${sp.area}" class="en-area sp"/><path d="${sp.d}" class="en-line sp"/>`;
+  g += `<path d="${de.area}" class="en-area de"/><path d="${de.d}" class="en-line de"/>`;
+  for (let d = new Date(t0); d.getTime() <= t1; d.setDate(d.getDate() + 1)) {
+    const m = new Date(d); m.setHours(0, 0, 0, 0);
+    const mt = m.getTime();
+    if (mt > t0 && mt < t1) g += `<line x1="${xt(mt).toFixed(1)}" x2="${xt(mt).toFixed(1)}" y1="22" y2="154" class="kp-axis"/>`;
+    const noon = mt + 12 * H1;
+    if (noon > t0 + 3 * H1 && noon < t1 - 3 * H1) g += `<text x="${xt(noon).toFixed(1)}" y="12" class="en-day">${fmtWd.format(m).replace('.', '')} ${m.getDate()}</text>`;
+  }
+  const now = Date.now();
+  if (now > t0 && now < t1) g += `<line x1="${xt(now).toFixed(1)}" x2="${xt(now).toFixed(1)}" y1="22" y2="150" class="kp-now"/>`;
+  const cx = xt(frames[state.enFrame].t).toFixed(1);
+  g += `<line id="en-cur" x1="${cx}" x2="${cx}" y1="18" y2="154" class="en-cur"/></svg>`;
+  return `${g}<div class="kp-keys"><span><i class="k-sp"></i>Vitesse à la Terre (km/s)</span><span><i class="k-de"></i>Densité (p/cm³)</span>
+    ${rows.some(cloudy) ? '<span><i class="k-cme"></i>Matière de la CME</span>' : ''}<span><i class="k-cur"></i>Image affichée</span></div>`;
+}
+
+function enLoad(k) {
+  let p = en.imgs.get(k);
+  if (!p) {
+    p = new Promise((done) => {
+      const im = new Image();
+      im.onload = im.onerror = () => done();
+      im.src = state.en.frames[k].url;
+    });
+    en.imgs.set(k, p);
+  }
+  return p;
+}
+
+function setEnFrame(k) {
+  const { frames } = state.en;
+  state.enFrame = k;
+  const f = frames[k];
+  const t = $('#en-t'), kind = $('#en-k'), range = $('#en-range'), cur = $('#en-cur');
+  if (t) t.textContent = enTime(f.t);
+  if (kind) kind.textContent = enKind(f.t);
+  if (range && Number(range.value) !== k) range.value = k;
+  if (cur) {
+    const x = EN_X0 + ((f.t - frames[0].t) / (frames.at(-1).t - frames[0].t)) * (EN_X1 - EN_X0);
+    cur.setAttribute('x1', x.toFixed(1)); cur.setAttribute('x2', x.toFixed(1));
+  }
+  en.want = k;
+  enLoad(k).then(() => { const img = $('#en-img'); if (img && en.want === k) img.src = f.url; });
+}
+
+function enlilPlayButton() {
+  const b = $('#en-card .en-play');
+  if (!b) return;
+  b.innerHTML = icon(en.playing ? 'pause' : 'play');
+  b.setAttribute('aria-label', en.playing ? 'Pause' : 'Lecture');
+}
+
+// Lecture en boucle, environ 9 images par seconde ; les six suivantes se chargent pendant ce temps.
+function enlilPlay() {
+  if (en.playing) return enlilStop();
+  const n = state.en.frames.length;
+  en.playing = true;
+  enlilPlayButton();
+  if (state.enFrame >= n - 1) setEnFrame(0);
+  const step = async () => {
+    const next = (state.enFrame + 1) % n;
+    for (let j = 1; j <= 6; j++) enLoad((next + j) % n);
+    await enLoad(next);
+    if (!en.playing) return;
+    setEnFrame(next);
+    en.timer = setTimeout(step, 110);
+  };
+  step();
+}
+
+function enlilStop() {
+  if (!en.playing) return;
+  en.playing = false;
+  clearTimeout(en.timer);
+  enlilPlayButton();
+}
+
+function setEnView(v) {
+  if (!EN_VIEWS[v]) return;
+  state.enView = v;
+  const fr = $('#en-card .en-frame');
+  if (fr) fr.className = `en-frame ${v}`;
+  $$('#en-card [data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+}
+
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'en-range' || !state.en) return;
+  enlilStop();
+  setEnFrame(Number(e.target.value));
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden) enlilStop(); });
+
+async function loadEnlil() {
+  try {
+    state.en = await fetchEnlil();
+    state.enError = null;
+    state.enFrame = null;
+    en.imgs.clear();
+  } catch (e) {
+    console.error(e);
+    state.enError = e.message;
+  }
+  const card = $('#en-card');
+  if (card) { card.innerHTML = enlilCard(); replay([card], 'swap'); }
+}
+
+const ENLIL_HELP = `<div class="help-body">
+  <p><b>WSA-Enlil</b> : modèle de la NOAA qui simule le vent solaire du Soleil jusqu’au-delà de la Terre. Il est relancé
+    au moins une fois par jour, et à chaque éjection de masse coronale (CME) importante dirigée vers nous.</p>
+  <p><b>Image</b> : à gauche, le plan des planètes vu de dessus, Soleil au centre, Terre en vert, sonde STEREO-A en
+    rouge ; à droite, la même chose vue de profil vers la Terre. Les spirales sont des courants de vent rapide ou dense
+    qui tournent avec le Soleil ; une CME apparaît comme une bulle qui s’éloigne du Soleil.</p>
+  <p><b>Courbes</b> : vitesse et densité prévues au point Terre. Au-delà de 500 km/s, ou à l’arrivée d’une CME, le Kp
+    peut monter, surtout si le champ magnétique s’oriente au sud (Bz négatif), ce que le modèle ne prévoit pas.</p>
+  <p>L’heure d’arrivée d’une CME est incertaine, souvent à 6 à 8 heures près. L’animation complète pèse environ
+    16 Mo : les images ne se chargent qu’à la lecture.</p>
+</div>`;
 
 const ovSub = () => `Prévision NOAA OVATION pour ${hm(state.ov.fc)}`;
 let geoLib = null;
@@ -1027,6 +1238,7 @@ function parseHash() {
 
 function showTab(tab, { push = true } = {}) {
   const first = !state.rendered[tab];
+  if (tab !== 'aurora') enlilStop();
   state.tab = tab;
   TABS.forEach((t, k) => {
     const page = $(`#${t}`);
@@ -1081,6 +1293,10 @@ document.addEventListener('click', (e) => {
     case 'help-seeing': return openSheet('Lire les prévisions', SEEING_HELP);
     case 'help-kp': return openSheet('L’indice Kp', KP_HELP);
     case 'help-meteors': return openSheet('Taux d’étoiles filantes', METEOR_HELP);
+    case 'help-enlil': return openSheet('Prévision WSA-Enlil', ENLIL_HELP);
+    case 'enlil-play': return enlilPlay();
+    case 'enlil-now': enlilStop(); return setEnFrame(enNowFrame());
+    case 'enlil-view': return setEnView(t.dataset.view);
     case 'close-sheet': return closeSheet();
     case 'refresh': closeSheet(); return load(true);
     case 'refresh-aurora': return loadAurora(true);
@@ -1397,7 +1613,7 @@ async function loadAurora(force = false) {
   try {
     state.au = await fetchAurora({ force });
     state.auError = null;
-    if (force) { state.sw = null; state.swError = null; state.ov = null; state.ovError = null; }
+    if (force) { state.sw = null; state.swError = null; state.ov = null; state.ovError = null; state.en = null; state.enError = null; enlilStop(); }
   } catch (e) {
     console.error(e);
     state.auError = `NOAA : ${e.message}`;

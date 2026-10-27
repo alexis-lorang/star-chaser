@@ -600,6 +600,47 @@ h1[tabindex]:focus { outline: none; }
 .sw-spark .zero { stroke: var(--ch-axis); stroke-width: 1; stroke-dasharray: 2 2; }
 .sw-note { margin-top: var(--sp-3); font-size: 13px; line-height: 1.4; color: var(--text-2); }
 
+/* Prévision WSA-Enlil : animation NOAA recadrée sur la vue du dessus et de profil, lecture, curseur, courbes. */
+.en-views { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.en-views .fchip { height: 32px; padding: 0 14px; font-size: 13px; }
+.en-frame { position: relative; overflow: hidden; margin: 0 -20px; aspect-ratio: 490 / 250; background: #000; }
+.en-frame img { position: absolute; left: 0; top: calc(-100% * var(--y) / 250); width: calc(100% * 960 / 490); max-width: none; height: auto; }
+.en-frame.density { --y: 62; }
+.en-frame.speed { --y: 325; }
+.en-keys { display: flex; justify-content: center; gap: var(--sp-4); margin-top: 10px; font-size: 12px; color: var(--text-2); }
+.en-keys span { display: inline-flex; align-items: center; gap: 6px; }
+.en-keys i { width: 9px; height: 9px; border-radius: 50%; background: var(--k); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .35); }
+.en-bar { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-4); }
+.en-play { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--glass-sel); color: var(--on-glass-sel); box-shadow: var(--glass-shadow); }
+.en-play .ic { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+.en-time { flex: 1; min-width: 0; }
+.en-time b { display: block; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.en-time small { display: block; margin-top: 1px; font-size: 12px; color: var(--text-2); }
+.en-now { flex: none; height: 32px; padding: 0 12px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-edge); color: var(--on-glass); font-size: 13px; font-weight: 600; transition: transform .3s var(--spring); }
+.en-now:active { transform: scale(.94); }
+/* Curseur : repère doré sur l'heure actuelle (pouce de 20 px, d'où le décalage de 10 px). */
+.en-range { position: relative; margin: var(--sp-2) 0; }
+.en-range::after { content: ""; position: absolute; top: 50%; left: calc(10px + (100% - 20px) * var(--now)); width: 2px; height: 14px; margin: -7px 0 0 -1px; border-radius: 1px; background: var(--accent); pointer-events: none; }
+.en-range input { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 32px; margin: 0; background: transparent; }
+.en-range input::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--fill); }
+.en-range input::-moz-range-track { height: 6px; border-radius: 3px; background: var(--fill); }
+.en-range input::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -7px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+.en-range input::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+.en-line { fill: none; stroke-width: 1.6; stroke-linejoin: round; }
+.en-line.sp { stroke: #5fb8f0; }
+.en-line.de { stroke: #b08cff; }
+.en-area { stroke: none; opacity: .14; }
+.en-area.sp { fill: #5fb8f0; }
+.en-area.de { fill: #b08cff; }
+.en-day { font: 600 10px var(--font); fill: var(--text-2); text-anchor: middle; }
+.en-cur { stroke: var(--accent); stroke-width: 2; }
+.en-cme { fill: var(--aurora-r); opacity: .18; }
+.kp-keys .k-sp { border-top: 2px solid #5fb8f0; }
+.kp-keys .k-de { border-top: 2px solid #b08cff; }
+.kp-keys .k-cur { width: 2px; height: 12px; border-radius: 1px; background: var(--accent); }
+.kp-keys .k-cme { width: 14px; height: 10px; border-radius: 2px; background: var(--aurora-r); opacity: .4; }
+#en-card .pill-btn { margin-top: var(--sp-4); }
+
 /* Carte de l'ovale */
 .map-wrap { position: relative; margin: 0 -20px; aspect-ratio: 1 / 1; }
 .map-wrap canvas { display: block; width: 100%; height: 100%; }

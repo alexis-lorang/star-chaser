@@ -99,6 +99,23 @@ export async function fetchOvation() {
   return { obs: utc(j['Observation Time']), fc: utc(j['Forecast Time']), pts: j.coordinates.filter((c) => c[2] >= 3) };
 }
 
+// Modèle WSA-Enlil (NOAA) : images de l'animation (une par heure, ~2 jours passés et ~5 jours de prévision)
+// et vent solaire prévu au point Terre (vitesse, densité, matière d'une CME), moyennes par demi-heure.
+export async function fetchEnlil() {
+  const [list, ts] = await Promise.all([
+    getJSON(`${SWPC}/products/animations/enlil.json`),
+    getJSON(`${SWPC}/json/enlil_time_series.json`, 45000),
+  ]);
+  const frames = list.map((f) => {
+    const m = f.url.match(/(\d{4})(\d\d)(\d\d)T(\d\d)/);
+    return m && { url: SWPC + f.url, t: Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4]) };
+  }).filter(Boolean).sort((a, b) => a.t - b.t);
+  if (!frames.length) throw new Error('animation vide');
+  const rows = ts.map((r) => ({ t: utc(r.time_tag), speed: r.v_r, density: r.earth_particles_per_cm3, cloud: r.cloud }))
+    .sort((a, b) => a.t - b.t);
+  return { frames, earth: bin(rows, ['speed', 'density', 'cloud'], 30 * 60e3) };
+}
+
 // ---------- Seuils pour un lieu ----------
 
 /**

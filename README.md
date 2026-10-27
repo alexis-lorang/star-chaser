@@ -27,8 +27,12 @@ Sur iPhone : Safari → Partager → « Sur l’écran d’accueil ». L’icôn
   crépuscule à l’aube, du bleu nuit (dégagé) au blanc (couvert). Le meilleur créneau des nuits bonnes ou excellentes
   est encadré en doré.
 - **Aurora** : chance d’aurore sur les 3 prochaines nuits (Kp prévu × nuages × Lune), graphique Kp observé / prévu
-  avec les seuils du lieu, vent solaire en direct (vitesse, densité, Bz, Bt), ovale auroral OVATION sur une carte,
-  tendance à 27 jours, seuils Kp pour le lieu (latitude géomagnétique).
+  avec les seuils du lieu, vent solaire en direct (vitesse, densité, Bz, Bt), prévision du vent solaire WSA-Enlil
+  (animation NOAA recadrée sur la vue du dessus, vitesse ou densité, lecture et curseur, courbes au point Terre,
+  arrivée d’une CME), ovale auroral OVATION sur une carte, tendance à 27 jours, seuils Kp pour le lieu.
+  La page NOAA de WSA-Enlil interdit l’intégration (`X-Frame-Options: SAMEORIGIN`) : le visualiseur est refait à partir
+  de ses données publiques (`products/animations/enlil.json`, `json/enlil_time_series.json`). Les images (~100 Ko
+  chacune, 169 au total) ne se chargent qu’à l’affichage et à la lecture.
 - **Meteors** : prochaine pluie (ou celle en cours), essaims actifs cette nuit, ruban de l’année, liste mois par mois
   avec la Lune et le taux attendu ici ; détail d’un essaim : courbe du radiant, de la Lune et du taux sur la nuit.
 - **Autres** : éclipses de Soleil et de Lune (10 ans, circonstances locales), passages visibles de l’ISS et de
@@ -62,7 +66,7 @@ les orbites CelesTrak (cache 12 h) : station éclairée par le Soleil, observate
 
 ## Sources
 
-Open-Meteo (prévisions, aérosols, recherche de lieux) · NOAA SWPC (Kp, vent solaire, OVATION, 27 jours) ·
+Open-Meteo (prévisions, aérosols, recherche de lieux) · NOAA SWPC (Kp, vent solaire, WSA-Enlil, OVATION, 27 jours) ·
 IMO (essaims) · CelesTrak (orbites) · Astronomy Engine, satellite.js, d3-geo, world-atlas (jsDelivr).
 
 ## Fichiers
@@ -70,7 +74,7 @@ IMO (essaims) · CelesTrak (orbites) · Astronomy Engine, satellite.js, d3-geo, 
 - `js/config.js` : lieux proposés, modèles, qualités de ciel, planètes, constellations, satellites
 - `js/astro.js` : Soleil, Lune, planètes, nuits et crépuscules, longitude solaire, latitude géomagnétique
 - `js/seeing.js` : prévisions Open-Meteo (cache 30 min), seeing, transparence, indices
-- `js/aurora.js` : données NOAA (cache 15 min), seuils du lieu
+- `js/aurora.js` : données NOAA (Kp en cache 15 min, vent solaire, WSA-Enlil, OVATION), seuils du lieu
 - `js/meteors.js` : essaims, maximum, taux visibles
 - `js/events.js` : éclipses, planètes, Lune, passages de satellites
 - `js/scene.js` : illustrations (nuit, aurore, étoiles filantes, événements)
